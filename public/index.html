@@ -24,7 +24,7 @@
     @media print {
       html, body {
         width: 210mm !important;
-        height: 288mm !important;
+        height: 274mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -37,7 +37,7 @@
         display: block !important;
         position: static !important;
         width: 210mm !important;
-        height: 288mm !important;
+        height: 274mm !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -48,7 +48,7 @@
       #print-area img {
         display: block !important;
         width: 210mm !important;
-        height: 288mm !important;
+        height: 274mm !important;
         max-width: none !important;
         max-height: none !important;
         object-fit: contain !important;
@@ -160,7 +160,6 @@
 
           <img id="single-preview" class="hidden max-h-[560px] w-auto object-contain" alt="工作紙預覽" />
 
-          <!-- 嚴格 1:1 等寬等高對比容器 -->
           <div id="compare-container" class="hidden relative w-full h-[560px] overflow-hidden bg-white">
             <img id="after-img" class="absolute inset-0 w-full h-full object-contain bg-white pointer-events-none" alt="還原後" />
             <div id="before-clip" class="absolute top-0 left-0 bottom-0 overflow-hidden pointer-events-none" style="width: 50%;">
@@ -470,7 +469,7 @@
       triggerDownloadBlob(blob, '空白練習工作紙_A4.png');
     });
 
-    // 2. 匯出標準 A4 PDF（使用 application/octet-stream 強制觸發手機與電腦直接下載單一 PDF 檔案，不在原頁打開預覽）
+    // 2. 匯出標準 A4 PDF（使用 application/octet-stream 強制觸發單一 PDF 檔案下載）
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const { jsPDF } = window.jspdf;
@@ -482,7 +481,7 @@
       triggerDownloadBlob(forceDownloadBlob, '空白練習工作紙_A4.pdf');
     });
 
-    // 3. 直接列印 A4（實體 210mm x 288mm 滿版鋪滿整張 A4，嚴格鎖定頁面 1/1，不溢出第 2 頁）
+    // 3. 直接列印 A4（實體 210mm x 274mm，預留 Safari 頁首頁尾空間，嚴格單頁第 1/1 頁）
     document.getElementById('print-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const printImg = document.getElementById('print-img');
