@@ -23,7 +23,8 @@
     }
     @media print {
       html, body {
-        height: auto !important;
+        width: 210mm !important;
+        height: 297mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -35,8 +36,10 @@
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important;
-        height: 98vh !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -47,10 +50,10 @@
         break-inside: avoid !important;
       }
       #print-area img {
-        max-width: 94vw !important;
-        max-height: 94vh !important;
-        width: auto !important;
-        height: auto !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
         object-fit: contain !important;
       }
     }
@@ -223,18 +226,17 @@
     let originalA4DataUrl = '';
     let restoredA4DataUrl = '';
 
-    // 輔助公式：將任意比例圖片等比例縮放並置中放入標準 A4 畫布（1240 x 1754，留出安全邊距）
+    // 輔助公式：將圖片等比例放大填滿標準 A4 畫布（1240 x 1754，僅留 16px 窄邊確保滿版清晰）
     function fitImageToStandardA4Canvas(sourceCanvasOrImg) {
       const A4_W = 1240;
       const A4_H = 1754;
-      const MARGIN = 44;
+      const MARGIN = 16;
 
       const a4Canvas = document.createElement('canvas');
       a4Canvas.width = A4_W;
       a4Canvas.height = A4_H;
       const ctx = a4Canvas.getContext('2d');
 
-      // 填充 100% 純白背景
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, A4_W, A4_H);
 
@@ -312,7 +314,6 @@
       const img = new Image();
       img.onload = () => {
         loadedImageObj = img;
-        // 原圖也同步套用標準 A4 置中畫布，確保左右 1:1 滑桿 100% 像素級重疊
         const origA4Canvas = fitImageToStandardA4Canvas(img);
         originalA4DataUrl = origA4Canvas.toDataURL('image/jpeg', 0.92);
         URL.revokeObjectURL(objectUrl);
@@ -413,7 +414,6 @@
 
       ctx.putImageData(imgData, 0, 0);
 
-      // 輸出標準 A4 尺寸畫布 (1240 x 1754)
       const finalA4Canvas = fitImageToStandardA4Canvas(canvas);
       return finalA4Canvas.toDataURL('image/png');
     }
@@ -455,7 +455,7 @@
     window.addEventListener('mousemove', (e) => { if (isDragging) updateSlider(e.clientX); });
     compareContainer.addEventListener('touchmove', (e) => updateSlider(e.touches[0].clientX));
 
-    // 1. 儲存標準 A4 尺寸 PNG 圖片 (1240 x 1754)
+    // 1. 儲存標準 A4 PNG（只傳 files，避免 iOS 多生出「文字」純文字檔）
     document.getElementById('download-png-btn').addEventListener('click', async () => {
       if (!restoredA4DataUrl) return;
       const blob = dataUrlToBlob(restoredA4DataUrl);
@@ -463,10 +463,7 @@
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({
-            files: [file],
-            title: '空白練習工作紙 (A4)',
-          });
+          await navigator.share({ files: [file] });
           return;
         } catch (err) {
           if (err.name === 'AbortError') return;
@@ -475,7 +472,7 @@
       triggerDownloadBlob(blob, '空白練習工作紙_A4.png');
     });
 
-    // 2. 匯出標準 A4 PDF 檔 (210mm x 297mm 滿版精準對應)
+    // 2. 匯出標準 A4 PDF（只傳 files，解決手機儲存時同時生成「文字 2」的重複檔案問題）
     document.getElementById('download-pdf-btn').addEventListener('click', async () => {
       if (!restoredA4DataUrl) return;
       const { jsPDF } = window.jspdf;
@@ -487,10 +484,7 @@
 
       if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
-          await navigator.share({
-            files: [pdfFile],
-            title: '空白練習工作紙_A4.pdf',
-          });
+          await navigator.share({ files: [pdfFile] });
           return;
         } catch (err) {
           if (err.name === 'AbortError') return;
@@ -499,7 +493,7 @@
       triggerDownloadBlob(pdfBlob, '空白練習工作紙_A4.pdf');
     });
 
-    // 3. 直接列印 A4（嚴格鎖定在單頁 98vh 視窗內，絕不換第二頁）
+    // 3. 直接列印 A4（100% 滿版放大符合標準 A4 解析度比例，且維持第 1/1 頁）
     document.getElementById('print-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const printImg = document.getElementById('print-img');
