@@ -23,30 +23,32 @@
     }
     @media print {
       html, body {
-        width: 210mm !important;
-        height: 290mm !important;
+        height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important;
         background: #ffffff !important;
       }
       body > *:not(#print-area) {
         display: none !important;
       }
       #print-area {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 98vh !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        width: 210mm !important;
-        height: 290mm !important;
         margin: 0 !important;
         padding: 0 !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
+        background: #ffffff !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
       #print-area img {
-        max-width: 196mm !important;
-        max-height: 280mm !important;
+        max-width: 94vw !important;
+        max-height: 94vh !important;
         width: auto !important;
         height: auto !important;
         object-fit: contain !important;
@@ -168,14 +170,14 @@
               </div>
             </div>
             <span class="absolute top-3 left-3 bg-black/65 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">原圖</span>
-            <span class="absolute top-3 right-3 bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">純白還原版</span>
+            <span class="absolute top-3 right-3 bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">純白還原版（標準 A4）</span>
           </div>
         </div>
 
         <div id="action-bar" class="hidden mt-4 space-y-2.5">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button id="download-png-btn" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm transition">
-              📥 儲存 PNG 圖片
+              📥 儲存 A4 PNG 圖片
             </button>
             <button id="download-pdf-btn" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition">
               📄 匯出 A4 PDF 檔
@@ -185,7 +187,7 @@
             </button>
           </div>
           <p class="text-xs text-slate-500 text-center">
-            💡 手機提示：點擊「儲存 PNG」可選「儲存影像」直接存入相簿；點擊「匯出 PDF」可選「儲存到檔案」或直接分享列印
+            💡 手機提示：點擊「儲存 A4 PNG」可選「儲存影像」直接存入相簿；點擊「匯出 PDF」可選「儲存到檔案」或直接分享列印
           </p>
         </div>
       </div>
@@ -218,9 +220,38 @@
     const strengthVal = document.getElementById('strength-val');
 
     let loadedImageObj = null;
-    let originalDataUrl = '';
-    let restoredDataUrl = '';
-    let restoredRatio = 1.414;
+    let originalA4DataUrl = '';
+    let restoredA4DataUrl = '';
+
+    // 輔助公式：將任意比例圖片等比例縮放並置中放入標準 A4 畫布（1240 x 1754，留出安全邊距）
+    function fitImageToStandardA4Canvas(sourceCanvasOrImg) {
+      const A4_W = 1240;
+      const A4_H = 1754;
+      const MARGIN = 44;
+
+      const a4Canvas = document.createElement('canvas');
+      a4Canvas.width = A4_W;
+      a4Canvas.height = A4_H;
+      const ctx = a4Canvas.getContext('2d');
+
+      // 填充 100% 純白背景
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, A4_W, A4_H);
+
+      const srcW = sourceCanvasOrImg.width;
+      const srcH = sourceCanvasOrImg.height;
+      const availW = A4_W - MARGIN * 2;
+      const availH = A4_H - MARGIN * 2;
+
+      const scale = Math.min(availW / srcW, availH / srcH);
+      const drawW = Math.round(srcW * scale);
+      const drawH = Math.round(srcH * scale);
+      const offsetX = Math.round((A4_W - drawW) / 2);
+      const offsetY = Math.round((A4_H - drawH) / 2);
+
+      ctx.drawImage(sourceCanvasOrImg, offsetX, offsetY, drawW, drawH);
+      return a4Canvas;
+    }
 
     function syncExactDimensions() {
       if (!compareContainer.classList.contains('hidden')) {
@@ -241,23 +272,21 @@
 
     function runRestore() {
       if (!loadedImageObj) return;
-      const result = processWorksheetCanvas(loadedImageObj, {
+      restoredA4DataUrl = processWorksheetCanvas(loadedImageObj, {
         removeRed: document.getElementById('opt-red').checked,
         removePencil: document.getElementById('opt-pencil').checked,
         pureWhite: document.getElementById('opt-white').checked,
         strength: Number(strengthSlider.value),
       });
-      restoredDataUrl = result.dataUrl;
-      restoredRatio = result.height / result.width;
 
-      beforeImg.src = originalDataUrl;
-      afterImg.src = restoredDataUrl;
+      beforeImg.src = originalA4DataUrl;
+      afterImg.src = restoredA4DataUrl;
 
       singlePreview.classList.add('hidden');
       compareContainer.classList.remove('hidden');
       requestAnimationFrame(syncExactDimensions);
       actionBar.classList.remove('hidden');
-      statusBadge.textContent = '✨ 還原完成！左右拖動滑桿 1:1 對比';
+      statusBadge.textContent = '✨ 還原完成！已自動標準化為 A4 尺寸';
     }
 
     strengthSlider.addEventListener('input', () => {
@@ -283,25 +312,16 @@
       const img = new Image();
       img.onload = () => {
         loadedImageObj = img;
-        const maxDim = 1600;
-        let w = img.width, h = img.height;
-        if (w > maxDim || h > maxDim) {
-          if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
-          else { w = Math.round((w * maxDim) / h); h = maxDim; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-
-        originalDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        // 原圖也同步套用標準 A4 置中畫布，確保左右 1:1 滑桿 100% 像素級重疊
+        const origA4Canvas = fitImageToStandardA4Canvas(img);
+        originalA4DataUrl = origA4Canvas.toDataURL('image/jpeg', 0.92);
         URL.revokeObjectURL(objectUrl);
 
         fileNameEl.textContent = '✅ 已載入：' + (file.name || '工作紙照片');
         emptyPlaceholder.classList.add('hidden');
         compareContainer.classList.add('hidden');
         actionBar.classList.add('hidden');
-        singlePreview.src = originalDataUrl;
+        singlePreview.src = originalA4DataUrl;
         singlePreview.classList.remove('hidden');
         restoreBtn.disabled = false;
         statusBadge.textContent = '已載入原圖，請點擊「一鍵秒速還原」';
@@ -392,7 +412,10 @@
       }
 
       ctx.putImageData(imgData, 0, 0);
-      return { dataUrl: canvas.toDataURL('image/png'), width: w, height: h };
+
+      // 輸出標準 A4 尺寸畫布 (1240 x 1754)
+      const finalA4Canvas = fitImageToStandardA4Canvas(canvas);
+      return finalA4Canvas.toDataURL('image/png');
     }
 
     function dataUrlToBlob(dataUrl) {
@@ -432,45 +455,32 @@
     window.addEventListener('mousemove', (e) => { if (isDragging) updateSlider(e.clientX); });
     compareContainer.addEventListener('touchmove', (e) => updateSlider(e.touches[0].clientX));
 
-    // 1. 儲存 PNG（手機自動喚起「儲存影像」進相簿，電腦直接下載至預設下載資料夾）
+    // 1. 儲存標準 A4 尺寸 PNG 圖片 (1240 x 1754)
     document.getElementById('download-png-btn').addEventListener('click', async () => {
-      if (!restoredDataUrl) return;
-      const blob = dataUrlToBlob(restoredDataUrl);
-      const file = new File([blob], '空白練習工作紙.png', { type: 'image/png' });
+      if (!restoredA4DataUrl) return;
+      const blob = dataUrlToBlob(restoredA4DataUrl);
+      const file = new File([blob], '空白練習工作紙_A4.png', { type: 'image/png' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: '空白練習工作紙',
+            title: '空白練習工作紙 (A4)',
           });
           return;
         } catch (err) {
           if (err.name === 'AbortError') return;
         }
       }
-      triggerDownloadBlob(blob, '空白練習工作紙.png');
+      triggerDownloadBlob(blob, '空白練習工作紙_A4.png');
     });
 
-    // 2. 匯出 A4 PDF（按原圖比例等比縮放居中放入 A4，手機可選「儲存到檔案」或分享，電腦直接下載 .pdf）
+    // 2. 匯出標準 A4 PDF 檔 (210mm x 297mm 滿版精準對應)
     document.getElementById('download-pdf-btn').addEventListener('click', async () => {
-      if (!restoredDataUrl) return;
+      if (!restoredA4DataUrl) return;
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      const pageW = 210, pageH = 297, margin = 8;
-      const maxW = pageW - margin * 2;
-      const maxH = pageH - margin * 2;
-      let drawW = maxW;
-      let drawH = drawW * restoredRatio;
-      if (drawH > maxH) {
-        drawH = maxH;
-        drawW = drawH / restoredRatio;
-      }
-      const offsetX = (pageW - drawW) / 2;
-      const offsetY = (pageH - drawH) / 2;
-
-      pdf.addImage(restoredDataUrl, 'PNG', offsetX, offsetY, drawW, drawH);
+      pdf.addImage(restoredA4DataUrl, 'PNG', 0, 0, 210, 297);
 
       const pdfBlob = pdf.output('blob');
       const pdfFile = new File([pdfBlob], '空白練習工作紙_A4.pdf', { type: 'application/pdf' });
@@ -489,14 +499,14 @@
       triggerDownloadBlob(pdfBlob, '空白練習工作紙_A4.pdf');
     });
 
-    // 3. 直接列印 A4（嚴格鎖定單頁 1/1，不溢出換頁）
+    // 3. 直接列印 A4（嚴格鎖定在單頁 98vh 視窗內，絕不換第二頁）
     document.getElementById('print-btn').addEventListener('click', () => {
-      if (!restoredDataUrl) return;
+      if (!restoredA4DataUrl) return;
       const printImg = document.getElementById('print-img');
       printImg.onload = () => {
         setTimeout(() => window.print(), 150);
       };
-      printImg.src = restoredDataUrl;
+      printImg.src = restoredA4DataUrl;
     });
   </script>
 </body>
