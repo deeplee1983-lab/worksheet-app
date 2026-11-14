@@ -41,11 +41,11 @@
         </div>
         <div>
           <h1 class="font-bold text-lg text-slate-900 leading-tight">家長學習教室｜工作紙一鍵還原</h1>
-          <p class="text-xs text-slate-500">拍照 5 秒清除筆跡與紅筆批改，變成純白省墨重做試卷</p>
+          <p class="text-xs text-slate-500">拍照 1 秒清除筆跡與紅筆批改，變成純白省墨重做試卷</p>
         </div>
       </div>
-      <div class="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full font-medium">
-        今日免費額度：<span id="quota-count">3</span> / 3 張
+      <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
+        極速省墨引擎（無限免費）
       </div>
     </div>
   </header>
@@ -72,47 +72,31 @@
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
         <div class="flex items-center gap-2 mb-3">
           <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-          <h2 class="font-bold text-slate-800">選擇還原效果（已預設最佳省墨配方）</h2>
+          <h2 class="font-bold text-slate-800">選擇還原效果（可隨時微調強度）</h2>
         </div>
 
         <div class="space-y-2.5 text-sm">
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
-            <input type="checkbox" checked disabled class="mt-0.5 rounded text-indigo-600" />
+            <input id="opt-red" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">自動抹除小朋友筆跡與紅筆批改</span>
-              <span class="text-xs text-slate-500">保留原本印刷題目、插圖與填充底線</span>
+              <span class="font-semibold text-slate-800 block">自動濾除紅筆批改與藍筆字跡</span>
+              <span class="text-xs text-slate-500">移除老師紅筆剔號、分數與圈選</span>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-pencil" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">淡化清除淺灰鉛筆字跡</span>
+              <span class="text-xs text-slate-500">保留深黑印刷題目，消除鉛筆手寫</span>
             </div>
           </label>
 
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
             <input id="opt-white" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">100% 純白省墨底色</span>
+              <span class="font-semibold text-slate-800 block">100% 純白省墨底色 + 字體加深</span>
               <span class="text-xs text-slate-500">移除拍攝陰影與灰底，打印極省墨水</span>
-            </div>
-          </label>
-
-          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
-            <input id="opt-bold" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
-            <div>
-              <span class="font-semibold text-slate-800 block">文字與橫線加深加實</span>
-              <span class="text-xs text-slate-500">避免字跡過淺，省墨模式列印依然清晰</span>
-            </div>
-          </label>
-
-          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
-            <input id="opt-frame" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
-            <div>
-              <span class="font-semibold text-slate-800 block">題目標題加黑框（框內純白不填色）</span>
-              <span class="text-xs text-slate-500">層次分明不耗墨</span>
-            </div>
-          </label>
-
-          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
-            <input id="opt-straight" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
-            <div>
-              <span class="font-semibold text-slate-800 block">自動水平拉直與排版對齊</span>
-              <span class="text-xs text-slate-500">修正手機斜拍變形，符合 A4 比例</span>
             </div>
           </label>
         </div>
@@ -137,12 +121,6 @@
           <div id="empty-placeholder" class="text-center p-6 text-slate-400">
             <p class="text-sm font-medium">還原後的乾淨 A4 工作紙將顯示在這裡</p>
             <p class="text-xs mt-1">支援左右滑桿即時對比原圖與清除後的效果</p>
-          </div>
-
-          <div id="loading-overlay" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
-            <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
-            <p class="font-bold text-slate-800">AI 正在擦除筆跡並重新排版中...</p>
-            <p class="text-xs text-slate-500 mt-1">約需 8～15 秒，請勿關閉視窗</p>
           </div>
 
           <img id="single-preview" class="hidden max-h-[540px] w-auto object-contain" alt="工作紙預覽" />
@@ -196,13 +174,11 @@
     const afterImg = document.getElementById('after-img');
     const beforeClip = document.getElementById('before-clip');
     const sliderLine = document.getElementById('slider-line');
-    const loadingOverlay = document.getElementById('loading-overlay');
     const actionBar = document.getElementById('action-bar');
     const statusBadge = document.getElementById('status-badge');
 
+    let loadedImageObj = null;
     let originalDataUrl = '';
-    let originalBase64 = '';
-    let originalMimeType = 'image/jpeg';
     let restoredDataUrl = '';
 
     function handleFile(file) {
@@ -214,6 +190,7 @@
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
+          loadedImageObj = img;
           const maxDim = 1500;
           let w = img.width, h = img.height;
           if (w > maxDim || h > maxDim) {
@@ -225,9 +202,7 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
 
-          originalMimeType = 'image/jpeg';
-          originalDataUrl = canvas.toDataURL(originalMimeType, 0.85);
-          originalBase64 = originalDataUrl.split(',')[1];
+          originalDataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
           emptyPlaceholder.classList.add('hidden');
           compareContainer.classList.add('hidden');
@@ -235,102 +210,66 @@
           singlePreview.src = originalDataUrl;
           singlePreview.classList.remove('hidden');
           restoreBtn.disabled = false;
-          statusBadge.textContent = '已載入原圖，點擊左側按鈕開始還原';
+          statusBadge.textContent = '已載入原圖，點擊左側按鈕立即還原';
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    function processWorksheetCanvas(img, opts) {
+      const maxDim = 1800;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
 
-    restoreBtn.addEventListener('click', async () => {
-      if (!originalBase64) return;
-      loadingOverlay.classList.remove('hidden');
-      restoreBtn.disabled = true;
-      statusBadge.textContent = 'AI 處理中...';
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
 
-      try {
-        const res = await fetch('/api/restore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: originalBase64,
-            mimeType: originalMimeType,
-            options: {
-              pureWhite: document.getElementById('opt-white').checked,
-              boldText: document.getElementById('opt-bold').checked,
-              frameText: document.getElementById('opt-frame').checked,
-              straighten: document.getElementById('opt-straight').checked,
-            }
-          })
-        });
+      let lumSum = 0;
+      for (let i = 0; i < d.length; i += 16) {
+        lumSum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      }
+      const avgLum = lumSum / (d.length / 16);
+      const pencilCutoff = opts.removePencil ? Math.max(95, avgLum * 0.62) : Math.max(135, avgLum * 0.78);
 
-        const rawText = await res.text();
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (parseErr) {
-          throw new Error('伺服器回應格式異常 (' + res.status + ')：' + rawText.slice(0, 120));
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const maxC = Math.max(r, g, b);
+        const minC = Math.min(r, g, b);
+        const sat = maxC === 0 ? 0 : (maxC - minC) / maxC;
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        if (opts.removeRed && sat > 0.22 && (r > g + 22 || b > r + 30)) {
+          d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+          continue;
         }
 
-        if (!res.ok) throw new Error(data.error || '處理失敗');
-        if (!data.imageBase64) throw new Error('伺服器未回傳圖片數據');
-
-        const cleanMime = (data.mimeType && data.mimeType.startsWith('image/')) ? data.mimeType : 'image/png';
-        const cleanBase64 = data.imageBase64.replace(/\s+/g, '');
-        restoredDataUrl = `data:${cleanMime};base64,${cleanBase64}`;
-
-        beforeImg.src = originalDataUrl;
-        afterImg.src = restoredDataUrl;
-
-        singlePreview.classList.add('hidden');
-        compareContainer.classList.remove('hidden');
-        actionBar.classList.remove('hidden');
-        statusBadge.textContent = '✨ 還原完成！可左右拖動滑桿對比';
-      } catch (err) {
-        alert('還原時發生錯誤：' + err.message);
-        statusBadge.textContent = '處理失敗，請重試';
-      } finally {
-        loadingOverlay.classList.add('hidden');
-        restoreBtn.disabled = false;
+        if (opts.pureWhite) {
+          if (lum > pencilCutoff) {
+            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+          } else {
+            const dark = Math.max(0, Math.min(255, (lum - 30) * 1.45));
+            d[i] = dark; d[i + 1] = dark; d[i + 2] = dark;
+          }
+        }
       }
-    });
 
-    let isDragging = false;
-    function updateSlider(clientX) {
-      const rect = compareContainer.getBoundingClientRect();
-      let pct = ((clientX - rect.left) / rect.width) * 100;
-      pct = Math.max(0, Math.min(100, pct));
-      beforeClip.style.width = pct + '%';
-      sliderLine.style.left = pct + '%';
+      ctx.putImageData(imgData, 0, 0);
+      return canvas.toDataURL('image/png');
     }
-    compareContainer.addEventListener('mousedown', () => isDragging = true);
-    window.addEventListener('mouseup', () => isDragging = false);
-    window.addEventListener('mousemove', (e) => { if (isDragging) updateSlider(e.clientX); });
-    compareContainer.addEventListener('touchmove', (e) => updateSlider(e.touches[0].clientX));
 
-    document.getElementById('download-png-btn').addEventListener('click', () => {
-      if (!restoredDataUrl) return;
-      const a = document.createElement('a');
-      a.href = restoredDataUrl;
-      a.download = '空白練習工作紙.png';
-      a.click();
-    });
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-    document.getElementById('download-pdf-btn').addEventListener('click', () => {
-      if (!restoredDataUrl) return;
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(restoredDataUrl, 'PNG', 0, 0, 210, 297);
-      pdf.save('空白練習工作紙_A4.pdf');
-    });
-
-    document.getElementById('print-btn').addEventListener('click', () => {
-      if (!restoredDataUrl) return;
-      document.getElementById('print-img').src = restoredDataUrl;
-      setTimeout(() => window.print(), 200);
-    });
-  </script>
-</body>
-</html>
+    restoreBtn.addEventListener('click', () => {
+      if (!loadedImageObj) return;
+      restoredDataUrl = processWorksheetCanvas(loadedImageObj, {
+        removeRed: document.getElementById('opt-red').checked,
+        removePencil: document.
