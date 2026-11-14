@@ -13,13 +13,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const rawKey = process.env.GEMINI_API_KEY || '';
+  const apiKey = rawKey.trim();
   if (!apiKey) {
     return res.status(500).json({ error: '伺服器尚未設定 GEMINI_API_KEY 環境變數' });
   }
 
   try {
-    const { imageBase64, mimeType, options } = req.body;
+    const { imageBase64, mimeType, options } = req.body || {};
     if (!imageBase64) {
       return res.status(400).json({ error: '未收到圖片資料' });
     }
@@ -75,6 +76,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('Restore API Error:', err);
-    return res.status(500).json({ error: err.message || '圖片處理時發生錯誤' });
+    return res.status(500).json({ error: String(err.message || err) });
   }
 }
