@@ -1,7 +1,7 @@
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '12mb',
+      sizeLimit: '10mb',
     },
   },
 };
@@ -18,84 +18,79 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: '未收到圖片資料' });
   }
 
-  if (!apiKey) {
-    return res.status(500).json({ error: '尚未設定 GEMINI_API_KEY' });
-  }
-
-  try {
-    const prompt = `你是一個專為香港中小學家長服務的工作紙還原專家。請仔細觀察這張已作答的工作紙照片，區分「原本印刷的題目與版面」和「學生手寫答案（鉛筆/原子筆）及老師紅筆批改」。
-請嚴格遵循以下規則，將這份工作紙的「純空白原始印刷內容」完整還原出來，並以純 JSON 格式輸出（不要加 markdown 標記）：
-1. 徹底刪除所有學生手寫填入的答案、數字、英文字母、中文字、塗改液痕跡，以及老師的紅筆剔號、交叉、分數與評語，將填寫位置還原為乾淨的空白底線（例如：________）或空白方格。
-2. 完整保留原本印刷的標題、題號、指示語、英文/中文句子、選項表格（例如詞彙表）及頁碼。
-3. 格式必須為合法 JSON：
+  const prompt = `分析這張工作紙照片。區分「原版印刷題目」與「學生手寫填充答案及老師紅筆批改」。
+將所有學生手寫填入的英文單字、句子、數字、塗改及老師批改徹底刪除，把填寫位置還原為乾淨的底線（如 ________），完整保留原版印刷的標題、題號、指示語、句子、詞彙表及頁碼。
+只輸出純 JSON（不加任何說明文字）：
 {
-  "sectionTitle": "大標題（例如：B. Grammar practice:）",
-  "instruction": "題目指示語（例如：What can we do at school? Complete the sentences.）",
+  "sectionTitle": "大標題（如 B. Grammar practice:）",
+  "instruction": "指示語（如 What can we do at school? Complete the sentences.）",
   "questions": [
-    {
-      "num": "1.",
-      "lines": ["We can ____________________", "in the library."]
-    }
+    { "num": "1.", "lines": ["We can ____________________", "in the library."] }
   ],
   "wordBoxes": [
-    {
-      "boxTitle": "詞彙表標題（如 Places at school，若無則留空）",
-      "columns": 3,
-      "items": ["an art room", "a classroom", "a computer room"]
-    }
+    { "boxTitle": "詞彙表標題（如 Places at school）", "columns": 3, "items": ["an art room", "a classroom", "a computer room"] }
   ],
-  "footer": "頁尾頁碼（如 P.2，若無則留空）"
+  "footer": "頁尾（如 P.2）"
 }`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000);
+  // 依序嘗試多個免費模型，遇到單一模型流量高峰自動切換下一個
+  const candidateModels = [
+    'gemini-3.8-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-3.5-flash',
+    'gemini-2.5-flash-lite',
+  ];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: mimeType || 'image/jpeg',
-                    data: imageBase64,
+  let lastError = '所有 AI 伺服器目前皆處於高負載狀態，請稍等幾秒再試';
+
+  for (const model of candidateModels) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: mimeType || 'image/jpeg',
+                      data: imageBase64,
+                    },
                   },
-                },
-                { text: prompt },
-              ],
+                  { text: prompt },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.1,
             },
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
-          },
-        }),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        lastError = data?.error?.message || `API 錯誤 (${response.status})`;
+        continue; // 塞車或不可用時，立即嘗試下一個模型
       }
-    );
 
-    clearTimeout(timeoutId);
-    const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const parsed = JSON.parse(rawText);
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || `API 錯誤 (${response.status})`,
+      return res.status(200).json({
+        success: true,
+        modelUsed: model,
+        worksheet: parsed,
       });
+    } catch (err) {
+      lastError = String(err.message || err);
     }
-
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const parsed = JSON.parse(rawText);
-
-    return res.status(200).json({
-      success: true,
-      worksheet: parsed,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      error: err.name === 'AbortError' ? 'AI 分析逾時，請再試一次' : String(err.message || err),
-    });
   }
+
+  return res.status(503).json({ error: lastError });
 }
