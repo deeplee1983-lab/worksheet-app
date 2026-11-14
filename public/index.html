@@ -1,78 +1,496 @@
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-  const { imageBase64, mimeType } = req.body || {};
-
-  if (!imageBase64) {
-    return res.status(400).json({ error: '未收到圖片資料' });
-  }
-
-  try {
-    const prompt = `分析這張工作紙照片。區分「原版印刷題目」與「學生手寫填充答案及老師紅筆批改」。
-將所有學生手寫填入的英文單字、句子、數字、塗改及老師批改徹底刪除，把填寫位置還原為乾淨的底線（如 ________），完整保留原版印刷的標題、題號、指示語、句子、詞彙表及頁碼。
-只輸出純 JSON（不加任何說明文字）：
-{
-  "sectionTitle": "大標題（如 B. Grammar practice:）",
-  "instruction": "指示語（如 What can we do at school? Complete the sentences.）",
-  "questions": [
-    { "num": "1.", "lines": ["We can ____________________", "in the library."] }
-  ],
-  "wordBoxes": [
-    { "boxTitle": "詞彙表標題（如 Places at school）", "columns": 3, "items": ["an art room", "a classroom", "a computer room"] }
-  ],
-  "footer": "頁尾（如 P.2）"
-}`;
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: mimeType || 'image/jpeg',
-                    data: imageBase64,
-                  },
-                },
-                { text: prompt },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-          },
-        }),
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>家長學習教室｜工作紙一鍵還原空白練習紙</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Microsoft JhengHei", sans-serif; }
+    .checkerboard {
+      background-color: #f8fafc;
+      background-image: linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+        linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+    @media print {
+      html, body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
       }
-    );
+      body > *:not(#print-area) {
+        display: none !important;
+      }
+      #print-area {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        padding: 0;
+      }
+      #print-area img {
+        width: 210mm;
+        height: 297mm;
+        object-fit: contain;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    const data = await response.json();
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || `API 錯誤 (${response.status})`,
-      });
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+          紙
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-900 leading-tight">家長學習教室｜工作紙一鍵還原</h1>
+          <p class="text-xs text-slate-500">AI 識別原版印刷格式，徹底刪去手寫填充與批改，還原純白 A4 練習紙</p>
+        </div>
+      </div>
+      <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
+        AI 印刷級還原（免費版）
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-5 space-y-5">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+          <h2 class="font-bold text-slate-800">上傳已作答的工作紙照片</h2>
+        </div>
+
+        <button type="button" id="upload-trigger" class="w-full border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition bg-slate-50/60 hover:bg-indigo-50/30">
+          <svg class="w-10 h-10 text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="text-sm font-semibold text-slate-700">點擊拍照或從相簿選擇圖片</span>
+          <span class="text-xs text-slate-400 mt-1">支援 iPhone 相簿、JPG、PNG（建議正面拍攝）</span>
+        </button>
+        <input id="file-input" type="file" accept="image/*" class="hidden" />
+        <p id="file-name" class="text-xs text-emerald-600 font-medium mt-2 hidden"></p>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+          <h2 class="font-bold text-slate-800">還原與省墨排版設定</h2>
+        </div>
+
+        <div class="space-y-2.5 text-sm">
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
+            <input type="checkbox" checked disabled class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">AI 識別文字結構，徹底刪除手寫填充與紅筆</span>
+              <span class="text-xs text-slate-500">還原為乾淨空白底線與表格，100% 零鉛筆殘影</span>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-frame" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">題目標題加黑框（框內 100% 純白不填色）</span>
+              <span class="text-xs text-slate-500">層次分明、列印極省墨水</span>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-bold" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">加深印刷黑字 + 標準單頁 A4 水平拉直</span>
+              <span class="text-xs text-slate-500">確保字跡清晰銳利，列印嚴格單頁不跨頁</span>
+            </div>
+          </label>
+        </div>
+
+        <button id="restore-btn" disabled class="mt-5 w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
+          <span>✨ 一鍵還原空白練習紙</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="lg:col-span-7 flex flex-col">
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+            <h2 class="font-bold text-slate-800">1:1 前後對比與列印</h2>
+          </div>
+          <span id="status-badge" class="text-xs text-slate-400">請先在左側上傳照片</span>
+        </div>
+
+        <div id="preview-wrapper" class="relative flex-1 min-h-[480px] rounded-xl border border-slate-200 checkerboard overflow-hidden flex items-center justify-center select-none">
+          <div id="empty-placeholder" class="text-center p-6 text-slate-400">
+            <p class="text-sm font-medium">還原後的純白超清晰 A4 空白工作紙將顯示在這裡</p>
+            <p class="text-xs mt-1">支援左右 1:1 滑桿即時對比</p>
+          </div>
+
+          <div id="loading-overlay" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+            <p class="font-bold text-slate-800">AI 正在識別題目並清除所有手寫填充...</p>
+            <p class="text-xs text-slate-500 mt-1">約需 3～5 秒，請稍候</p>
+          </div>
+
+          <img id="single-preview" class="hidden max-h-[560px] w-auto object-contain" alt="工作紙預覽" />
+
+          <div id="compare-container" class="hidden relative w-full h-[560px] overflow-hidden bg-white">
+            <img id="after-img" class="absolute inset-0 w-full h-full object-contain bg-white pointer-events-none" alt="還原後" />
+            <div id="before-clip" class="absolute top-0 left-0 bottom-0 overflow-hidden pointer-events-none" style="width: 50%;">
+              <img id="before-img" class="max-w-none h-full object-contain bg-white" alt="原圖" />
+            </div>
+            <div id="slider-line" class="absolute top-0 bottom-0 w-0.5 bg-indigo-600 shadow-md cursor-ew-resize z-10" style="left: 50%;">
+              <div class="w-9 h-9 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shadow-lg -ml-[17px] mt-64 border-2 border-white">
+                ↔
+              </div>
+            </div>
+            <span class="absolute top-3 left-3 bg-black/65 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">原圖</span>
+            <span class="absolute top-3 right-3 bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">純白還原版</span>
+          </div>
+        </div>
+
+        <div id="action-bar" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button id="download-png-btn" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm transition">
+            📥 下載 PNG 圖片
+          </button>
+          <button id="download-pdf-btn" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition">
+            📄 匯出 A4 PDF 檔
+          </button>
+          <button id="print-btn" class="py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm border border-indigo-200 transition">
+            🖨️ 直接列印 A4
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="print-area" class="hidden">
+    <img id="print-img" src="" alt="列印工作紙" />
+  </div>
+
+  <footer class="text-center text-xs text-slate-400 py-5 border-t border-slate-200 bg-white mt-8">
+    家長學習教室 出品｜專為中小學家長打造的省墨重做練習小工具
+  </footer>
+
+  <script>
+    const uploadTrigger = document.getElementById('upload-trigger');
+    const fileInput = document.getElementById('file-input');
+    const fileNameEl = document.getElementById('file-name');
+    const restoreBtn = document.getElementById('restore-btn');
+    const emptyPlaceholder = document.getElementById('empty-placeholder');
+    const singlePreview = document.getElementById('single-preview');
+    const compareContainer = document.getElementById('compare-container');
+    const beforeImg = document.getElementById('before-img');
+    const afterImg = document.getElementById('after-img');
+    const beforeClip = document.getElementById('before-clip');
+    const sliderLine = document.getElementById('slider-line');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const actionBar = document.getElementById('action-bar');
+    const statusBadge = document.getElementById('status-badge');
+
+    let originalDataUrl = '';
+    let aiUploadBase64 = '';
+    let restoredDataUrl = '';
+
+    function syncExactDimensions() {
+      if (!compareContainer.classList.contains('hidden')) {
+        const w = compareContainer.getBoundingClientRect().width;
+        const h = compareContainer.getBoundingClientRect().height;
+        beforeImg.style.width = w + 'px';
+        beforeImg.style.height = h + 'px';
+        afterImg.style.width = w + 'px';
+        afterImg.style.height = h + 'px';
+      }
+    }
+    window.addEventListener('resize', syncExactDimensions);
+
+    uploadTrigger.addEventListener('click', () => {
+      fileInput.value = '';
+      fileInput.click();
+    });
+
+    function handleFile(file) {
+      if (!file) return;
+      fileNameEl.textContent = '正在載入照片...';
+      fileNameEl.classList.remove('hidden');
+
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        // 1. 高畫質預覽圖
+        const pCanvas = document.createElement('canvas');
+        const pMax = 1400;
+        let pw = img.width, ph = img.height;
+        if (pw > pMax || ph > pMax) {
+          if (pw > ph) { ph = Math.round((ph * pMax) / pw); pw = pMax; }
+          else { pw = Math.round((pw * pMax) / ph); ph = pMax; }
+        }
+        pCanvas.width = pw; pCanvas.height = ph;
+        pCanvas.getContext('2d').drawImage(img, 0, 0, pw, ph);
+        originalDataUrl = pCanvas.toDataURL('image/jpeg', 0.9);
+
+        // 2. 傳給 AI 的極速識別圖（900px 確保 2 秒內回應不逾時）
+        const aCanvas = document.createElement('canvas');
+        const aMax = 900;
+        let aw = img.width, ah = img.height;
+        if (aw > aMax || ah > aMax) {
+          if (aw > ah) { ah = Math.round((ah * aMax) / aw); aw = aMax; }
+          else { aw = Math.round((aw * aMax) / ah); ah = aMax; }
+        }
+        aCanvas.width = aw; aCanvas.height = ah;
+        aCanvas.getContext('2d').drawImage(img, 0, 0, aw, ah);
+        aiUploadBase64 = aCanvas.toDataURL('image/jpeg', 0.78).split(',')[1];
+
+        URL.revokeObjectURL(objectUrl);
+
+        fileNameEl.textContent = '✅ 已載入：' + (file.name || '工作紙照片');
+        emptyPlaceholder.classList.add('hidden');
+        compareContainer.classList.add('hidden');
+        actionBar.classList.add('hidden');
+        singlePreview.src = originalDataUrl;
+        singlePreview.classList.remove('hidden');
+        restoreBtn.disabled = false;
+        statusBadge.textContent = '已載入原圖，請點擊「一鍵還原」';
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        alert('無法讀取此圖片格式，請截圖後再上傳');
+      };
+      img.src = objectUrl;
     }
 
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const parsed = JSON.parse(rawText);
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let curY = y;
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+          ctx.fillText(line.trim(), x, curY);
+          line = words[n] + ' ';
+          curY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), x, curY);
+      return curY + lineHeight;
+    }
 
-    return res.status(200).json({ success: true, worksheet: parsed });
-  } catch (err) {
-    return res.status(500).json({ error: String(err.message || err) });
-  }
-}
+    function renderCleanA4Worksheet(ws, opts) {
+      const W = 1240;
+      const H = 1754;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, W, H);
+
+      const marginX = 95;
+      const contentW = W - marginX * 2;
+      let curY = 105;
+
+      ctx.fillStyle = '#000000';
+      ctx.strokeStyle = '#000000';
+
+      // 題目標題加黑框（框內純白不填色）
+      if (ws.sectionTitle || ws.instruction) {
+        const boxTop = curY - 30;
+        let tempY = curY + 10;
+        if (ws.sectionTitle) {
+          ctx.font = (opts.bold ? 'bold ' : '') + '28px "PingFang HK", "Microsoft JhengHei", Arial, sans-serif';
+          ctx.fillText(ws.sectionTitle, marginX + 18, tempY);
+          tempY += 42;
+        }
+        if (ws.instruction) {
+          ctx.font = (opts.bold ? '600 ' : '') + '25px "PingFang HK", "Microsoft JhengHei", Arial, sans-serif';
+          tempY = wrapText(ctx, ws.instruction, marginX + 18, tempY, contentW - 36, 36);
+        }
+        const boxHeight = tempY - boxTop - 6;
+        if (opts.frame) {
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(marginX, boxTop, contentW, boxHeight);
+        }
+        curY = boxTop + boxHeight + 55;
+      }
+
+      // 題目與乾淨空白填空底線
+      const questions = Array.isArray(ws.questions) ? ws.questions : [];
+      ctx.font = (opts.bold ? '600 ' : '') + '27px "PingFang HK", "Microsoft JhengHei", Arial, sans-serif';
+      const qSpacing = Math.min(185, Math.max(115, Math.floor(880 / Math.max(1, questions.length))));
+
+      questions.forEach((q) => {
+        if (q.num) {
+          ctx.fillText(q.num, marginX + 5, curY);
+        }
+        let lineY = curY;
+        const lines = Array.isArray(q.lines) ? q.lines : [];
+        lines.forEach((ln) => {
+          const cleanLn = ln.replace(/_+/g, '____________________');
+          ctx.fillText(cleanLn, marginX + 75, lineY);
+          lineY += 46;
+        });
+        curY += qSpacing;
+      });
+
+      // 詞彙表格（框內純白不填灰底，省墨）
+      const boxes = Array.isArray(ws.wordBoxes) ? ws.wordBoxes : [];
+      boxes.forEach((box) => {
+        if (!box.items || box.items.length === 0) return;
+        curY += 12;
+        if (box.boxTitle) {
+          ctx.font = 'bold 25px "PingFang HK", "Microsoft JhengHei", Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(box.boxTitle, W / 2, curY);
+          ctx.textAlign = 'left';
+          curY += 16;
+        }
+        const cols = box.columns || 3;
+        const rows = Math.ceil(box.items.length / cols);
+        const cellW = contentW / cols;
+        const cellH = 46;
+        const tableH = rows * cellH;
+
+        ctx.lineWidth = 2;
+        ctx.strokeRect(marginX, curY, contentW, tableH);
+
+        for (let c = 1; c < cols; c++) {
+          ctx.beginPath();
+          ctx.moveTo(marginX + c * cellW, curY);
+          ctx.lineTo(marginX + c * cellW, curY + tableH);
+          ctx.stroke();
+        }
+        for (let r = 1; r < rows; r++) {
+          ctx.beginPath();
+          ctx.moveTo(marginX, curY + r * cellH);
+          ctx.lineTo(marginX + contentW, curY + r * cellH);
+          ctx.stroke();
+        }
+
+        ctx.font = (opts.bold ? '600 ' : '') + '24px "PingFang HK", "Microsoft JhengHei", Arial, sans-serif';
+        box.items.forEach((item, idx) => {
+          const r = Math.floor(idx / cols);
+          const c = idx % cols;
+          ctx.fillText(item, marginX + c * cellW + 18, curY + r * cellH + 31);
+        });
+
+        curY += tableH + 35;
+      });
+
+      if (ws.footer) {
+        ctx.font = '22px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ws.footer, W / 2, H - 55);
+        ctx.textAlign = 'left';
+      }
+
+      return canvas.toDataURL('image/png');
+    }
+
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+    restoreBtn.addEventListener('click', async () => {
+      if (!aiUploadBase64) return;
+      loadingOverlay.classList.remove('hidden');
+      restoreBtn.disabled = true;
+      statusBadge.textContent = 'AI 識別版面與清除手寫中...';
+
+      try {
+        const res = await fetch('/api/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: aiUploadBase64,
+            mimeType: 'image/jpeg',
+          }),
+        });
+
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          throw new Error('伺服器回應異常：' + rawText.slice(0, 100));
+        }
+
+        if (!res.ok || !data.worksheet) {
+          throw new Error(data.error || 'AI 識別失敗，請再試一次');
+        }
+
+        restoredDataUrl = renderCleanA4Worksheet(data.worksheet, {
+          frame: document.getElementById('opt-frame').checked,
+          bold: document.getElementById('opt-bold').checked,
+        });
+
+        beforeImg.src = originalDataUrl;
+        afterImg.src = restoredDataUrl;
+
+        singlePreview.classList.add('hidden');
+        compareContainer.classList.remove('hidden');
+        requestAnimationFrame(syncExactDimensions);
+        actionBar.classList.remove('hidden');
+        statusBadge.textContent = '✨ 還原完成！左右拖動滑桿 1:1 對比';
+      } catch (err) {
+        alert('還原時發生錯誤：' + err.message);
+        statusBadge.textContent = '處理失敗，請重試';
+      } finally {
+        loadingOverlay.classList.add('hidden');
+        restoreBtn.disabled = false;
+      }
+    });
+
+    let isDragging = false;
+    function updateSlider(clientX) {
+      const rect = compareContainer.getBoundingClientRect();
+      let pct = ((clientX - rect.left) / rect.width) * 100;
+      pct = Math.max(0, Math.min(100, pct));
+      beforeClip.style.width = pct + '%';
+      sliderLine.style.left = pct + '%';
+    }
+    compareContainer.addEventListener('mousedown', () => isDragging = true);
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', (e) => { if (isDragging) updateSlider(e.clientX); });
+    compareContainer.addEventListener('touchmove', (e) => updateSlider(e.touches[0].clientX));
+
+    document.getElementById('download-png-btn').addEventListener('click', () => {
+      if (!restoredDataUrl) return;
+      const a = document.createElement('a');
+      a.href = restoredDataUrl;
+      a.download = '空白練習工作紙.png';
+      a.click();
+    });
+
+    document.getElementById('download-pdf-btn').addEventListener('click', () => {
+      if (!restoredDataUrl) return;
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      pdf.addImage(restoredDataUrl, 'PNG', 0, 0, 210, 297);
+      pdf.save('空白練習工作紙_A4.pdf');
+    });
+
+    document.getElementById('print-btn').addEventListener('click', () => {
+      if (!restoredDataUrl) return;
+      document.getElementById('print-img').src = restoredDataUrl;
+      setTimeout(() => window.print(), 200);
+    });
+  </script>
+</body>
+</html>
