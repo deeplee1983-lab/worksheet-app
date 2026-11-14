@@ -22,28 +22,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: '未收到圖片資料' });
     }
 
-    let rules = [
-      "Identify all original printed worksheet questions, instructions, illustrations, answer lines, and boxes, and preserve them accurately.",
-      "Completely remove and erase all handwritten student answers (pencil/pen) and all teacher red-pen corrections, checkmarks, crosses, circles, and scores, restoring the worksheet to a clean, unused blank state for re-practicing."
-    ];
-
-    if (options?.pureWhite) {
-      rules.push("Remove all camera shadows, gray paper tint, creases, and background noise. Convert the entire background (both inside and outside any boxes) to 100% pure flat white (#FFFFFF) for maximum printer ink saving.");
-    }
-    if (options?.boldText) {
-      rules.push("Render all printed text, numbers, and answer lines in crisp, dark, solid black so they print clearly even in ink-saving mode.");
-    }
-    if (options?.frameText) {
-      rules.push("Draw clean, thin solid black rectangular frames around the main instruction titles and section headers, keeping the inside of every frame 100% pure white with no shading.");
-    }
-    if (options?.straighten) {
-      rules.push("Remove any camera perspective tilt or distortion. Straighten and align all text lines, boxes, and horizontal answer lines so every line is completely level, evenly spaced, and well-proportioned on a flat vertical A4 layout.");
-    }
-
-    const prompt = `Edit this school worksheet image into a clean, printable blank A4 worksheet:\n- ` + rules.join("\n- ");
-
+    // 呼叫免費版額度充足的 gemini-2.5-flash 進行版面與題目結構分析
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,35 +38,29 @@ export default async function handler(req, res) {
                     data: imageBase64,
                   },
                 },
-                { text: prompt },
+                {
+                  text: "Analyze this worksheet briefly in Traditional Chinese (Hong Kong): list the main title and confirm how many questions are detected. Keep it under 50 words.",
+                },
               ],
             },
           ],
-          generationConfig: {
-            responseModalities: ['IMAGE'],
-          },
         }),
       }
     );
 
     const data = await response.json();
-
     if (!response.ok) {
       return res.status(response.status).json({
         error: data?.error?.message || `Google API 錯誤 (${response.status})`,
       });
     }
 
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((p) => p.inlineData);
-
-    if (!imagePart) {
-      return res.status(500).json({ error: 'AI 未能生成圖片，請稍後再試或更換更清晰的照片' });
-    }
+    const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text || '已完成工作紙版面識別';
 
     return res.status(200).json({
-      imageBase64: imagePart.inlineData.data,
-      mimeType: imagePart.inlineData.mimeType || 'image/png',
+      mode: 'client-filter',
+      summary,
+      options: options || {},
     });
   } catch (err) {
     return res.status(500).json({ error: String(err.message || err) });
