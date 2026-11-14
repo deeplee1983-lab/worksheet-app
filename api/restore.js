@@ -1,5 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
-
 export const config = {
   api: {
     bodyParser: {
@@ -13,8 +11,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const rawKey = process.env.GEMINI_API_KEY || '';
-  const apiKey = rawKey.trim();
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) {
     return res.status(500).json({ error: '伺服器尚未設定 GEMINI_API_KEY 環境變數' });
   }
@@ -24,8 +21,6 @@ export default async function handler(req, res) {
     if (!imageBase64) {
       return res.status(400).json({ error: '未收到圖片資料' });
     }
-
-    const ai = new GoogleGenAI({ apiKey });
 
     let rules = [
       "Identify all original printed worksheet questions, instructions, illustrations, answer lines, and boxes, and preserve them accurately.",
@@ -47,23 +42,41 @@ export default async function handler(req, res) {
 
     const prompt = `Edit this school worksheet image into a clean, printable blank A4 worksheet:\n- ` + rules.join("\n- ");
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: [
-        {
-          inlineData: {
-            data: imageBase64,
-            mimeType: mimeType || 'image/jpeg',
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: mimeType || 'image/jpeg',
+                    data: imageBase64,
+                  },
+                },
+                { text: prompt },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseModalities: ['IMAGE'],
           },
-        },
-        prompt,
-      ],
-      config: {
-        responseModalities: ['IMAGE'],
-      },
-    });
+        }),
+      }
+    );
 
-    const parts = response.candidates?.[0]?.content?.parts || [];
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: data?.error?.message || `Google API 錯誤 (${response.status})`,
+      });
+    }
+
+    const parts = data?.candidates?.[0]?.content?.parts || [];
     const imagePart = parts.find((p) => p.inlineData);
 
     if (!imagePart) {
@@ -75,7 +88,6 @@ export default async function handler(req, res) {
       mimeType: imagePart.inlineData.mimeType || 'image/png',
     });
   } catch (err) {
-    console.error('Restore API Error:', err);
     return res.status(500).json({ error: String(err.message || err) });
   }
 }
