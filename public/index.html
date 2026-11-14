@@ -64,11 +64,11 @@
         </div>
         <div>
           <h1 class="font-bold text-lg text-slate-900 leading-tight">家長學習教室｜工作紙一鍵還原</h1>
-          <p class="text-xs text-slate-500">智能識別並拆除鉛筆答案、手畫圈選與紅筆批改，原樣保留印刷題目與插圖</p>
+          <p class="text-xs text-slate-500">移除鉛筆手寫與紅筆批改，高曝光純白底色 + 實心深黑印刷文字與框線</p>
         </div>
       </div>
       <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
-        智能結構擦除引擎（秒速・免費）
+        極速省墨引擎（秒速・免費）
       </div>
     </div>
   </header>
@@ -95,31 +95,31 @@
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
         <div class="flex items-center gap-2 mb-3">
           <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-          <h2 class="font-bold text-slate-800">自動拆除項目</h2>
+          <h2 class="font-bold text-slate-800">自動還原項目</h2>
         </div>
 
         <div class="space-y-2.5 text-sm">
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
             <input id="opt-red" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">徹底拆除老師紅筆打叉（✗）、剔號（√）與藍筆</span>
-              <span class="text-xs text-slate-500">YCbCr 色度分離 + 形態學膨脹，清除彩色批改不留痕</span>
-            </div>
-          </label>
-
-          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
-            <input id="opt-pencil" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
-            <div>
-              <span class="font-semibold text-slate-800 block">連通域幾何分析：拆除鉛筆填空字跡與手畫圓圈</span>
-              <span class="text-xs text-slate-500">自動識別並抹除手寫筆劃與圈選，完整保留印刷文字與插圖</span>
+              <span class="font-semibold text-slate-800 block">1. 完全移除手寫鉛筆字與紅筆批改痕跡</span>
+              <span class="text-xs text-slate-500">徹底抹去鉛筆填答、紅筆改錯與分數，還原空白作答線</span>
             </div>
           </label>
 
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
             <input id="opt-white" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">純白省墨底色 + 印刷黑字原樣保護</span>
-              <span class="text-xs text-slate-500">只漂白紙張底色，絕不減淡原有題目文字與插圖</span>
+              <span class="font-semibold text-slate-800 block">2. 去除拍攝陰影與雜質（100% 純白省墨底色）</span>
+              <span class="text-xs text-slate-500">推高曝光率消除光影、折痕與灰底，框內純白不耗墨</span>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-bold" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">3. 獨立清爽黑框線 + 高對比實心深黑文字與插圖</span>
+              <span class="text-xs text-slate-500">保留題目與表格黑框線，文字與插圖實色深黑清晰</span>
             </div>
           </label>
         </div>
@@ -260,9 +260,9 @@
     function runRestore() {
       if (!loadedImageObj) return;
       restoredA4DataUrl = processWorksheetCanvas(loadedImageObj, {
-        removeRed: document.getElementById('opt-red').checked,
-        removePencil: document.getElementById('opt-pencil').checked,
+        removeMarks: document.getElementById('opt-red').checked,
         pureWhite: document.getElementById('opt-white').checked,
+        boldText: document.getElementById('opt-bold').checked,
       });
 
       beforeImg.src = originalA4DataUrl;
@@ -275,7 +275,7 @@
       statusBadge.textContent = '✨ 還原完成！左右滑動對比移除前後效果';
     }
 
-    ['opt-red', 'opt-pencil', 'opt-white'].forEach((id) => {
+    ['opt-red', 'opt-white', 'opt-bold'].forEach((id) => {
       document.getElementById(id).addEventListener('change', () => {
         if (!compareContainer.classList.contains('hidden')) {
           runRestore();
@@ -313,12 +313,10 @@
     }
 
     /**
-     * 開源結構化試卷擦除演算法：
-     * 1. YCbCr 色度空間分離 + 5x5 形態學膨脹：精準移除老師紅筆打叉 (✗)、剔號 (√)、藍筆批改
-     * 2. Sauvola 自適應局部二值化 + 8-連通域幾何特徵分析 (CCA)：
-     *    - 識別手畫大圓圈（寬度大、空心度高）並整圈擦除，保留圈內印刷字
-     *    - 識別手寫鉛筆筆劃（局部墨水濃度低於印刷油墨、筆劃梯度較平緩）並整塊抹除
-     *    - 原有深黑印刷文字、題號、橫線與插圖 100% 保留原始粗細與對比度
+     * 平滑連續高曝光純白省墨引擎（無任何硬網格馬賽克）：
+     * 1. 連續紅藍批改剝離（清除紅筆、粉紅、藍筆批改與邊緣抗鋸齒）
+     * 2. 大半徑平滑背景估計（雙線性插值平滑光影與折痕，避免硬方塊邊界）
+     * 3. 高曝光純白切割 + 實心深黑印刷加固（框內灰底轉純白，印刷文字、框線與插圖實色深黑）
      */
     function processWorksheetCanvas(img, opts) {
       const maxDim = 1600;
@@ -337,222 +335,129 @@
       const d = imgData.data;
       const total = w * h;
 
-      // 步驟 1：YCbCr 色度分離移除紅筆/藍筆批改（結合 5x5 形態學膨脹消除紅筆外圍光暈）
-      if (opts.removeRed) {
-        const chromaMask = new Uint8Array(total);
+      // 步驟 1：精準剝離紅筆、藍筆與彩色批改（3x3 平滑擴張，無馬賽克）
+      if (opts.removeMarks) {
+        const colorFlag = new Uint8Array(total);
         for (let p = 0; p < total; p++) {
           const i = p * 4;
           const r = d[i], g = d[i + 1], b = d[i + 2];
-          // YCbCr 色度差計算
-          const cb = -0.1687 * r - 0.3313 * g + 0.5 * b;
-          const cr = 0.5 * r - 0.4187 * g - 0.0813 * b;
-          const chromaDist = Math.hypot(cb, cr);
-          if (chromaDist > 11 && (cr > 6 || cb > 8 || (r - g > 12))) {
-            chromaMask[p] = 1;
+          const maxC = Math.max(r, g, b);
+          const minC = Math.min(r, g, b);
+          const diff = maxC - minC;
+          if (diff > 16 && (r - g > 13 || b - r > 18 || g - r > 22)) {
+            colorFlag[p] = 1;
           }
         }
-        // 5x5 形態學膨脹（半徑 2 像素），徹底包覆紅筆打叉與剔號邊緣
-        const dilatedChroma = new Uint8Array(total);
-        for (let y = 2; y < h - 2; y++) {
-          for (let x = 2; x < w - 2; x++) {
+        const dilated = new Uint8Array(total);
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
             const p = y * w + x;
-            if (chromaMask[p]) {
-              for (let dy = -2; dy <= 2; dy++) {
-                const rowOff = (y + dy) * w;
-                for (let dx = -2; dx <= 2; dx++) {
-                  dilatedChroma[rowOff + x + dx] = 1;
-                }
-              }
+            if (
+              colorFlag[p] ||
+              colorFlag[p - 1] || colorFlag[p + 1] ||
+              colorFlag[p - w] || colorFlag[p + w] ||
+              colorFlag[p - w - 1] || colorFlag[p - w + 1] ||
+              colorFlag[p + w - 1] || colorFlag[p + w + 1]
+            ) {
+              dilated[p] = 1;
             }
           }
         }
         for (let p = 0; p < total; p++) {
-          if (dilatedChroma[p]) {
+          if (dilated[p]) {
             const i = p * 4;
             d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
           }
         }
       }
 
-      // 步驟 2：計算灰階亮度與局部紙張背景基準（積分圖快速均值）
+      // 步驟 2：計算每個像素灰階，並用低解析度平滑縮放取得連續紙張光照圖（徹底消除拍照陰影，絕無方格馬賽克）
       const gray = new Float32Array(total);
       for (let p = 0; p < total; p++) {
         const i = p * 4;
         gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
       }
 
-      const gridSize = 32;
-      const gw = Math.ceil(w / gridSize);
-      const gh = Math.ceil(h / gridSize);
-      const localBg = new Float32Array(gw * gh);
+      // 建立 16x22 粗略光照網格，取每區最亮紙張值後做平滑濾波與雙線性內插
+      const cols = 16, rows = 22;
+      const cellW = w / cols;
+      const cellH = h / rows;
+      const grid = new Float32Array(cols * rows);
 
-      for (let gy = 0; gy < gh; gy++) {
-        for (let gx = 0; gx < gw; gx++) {
-          let maxLum = 150;
-          const startY = gy * gridSize;
-          const endY = Math.min(h, startY + gridSize);
-          const startX = gx * gridSize;
-          const endX = Math.min(w, startX + gridSize);
-          for (let y = startY; y < endY; y += 2) {
-            for (let x = startX; x < endX; x += 2) {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let maxVal = 155;
+          const y0 = Math.floor(r * cellH);
+          const y1 = Math.min(h, Math.floor((r + 1) * cellH));
+          const x0 = Math.floor(c * cellW);
+          const x1 = Math.min(w, Math.floor((c + 1) * cellW));
+          for (let y = y0; y < y1; y += 3) {
+            for (let x = x0; x < x1; x += 3) {
               const v = gray[y * w + x];
-              if (v > maxLum) maxLum = v;
+              if (v > maxVal) maxVal = v;
             }
           }
-          localBg[gy * gw + gx] = maxLum;
+          grid[r * cols + c] = maxVal;
         }
       }
 
-      // 計算每個像素相對於局部紙張底色的「墨水深度（Ink Darkness = 1 - gray/paperWhite）」
-      const inkDepth = new Float32Array(total);
-      const foregroundMask = new Uint8Array(total);
+      // 對光照網格做 3x3 高斯平滑，保證相鄰區塊 100% 無縫過渡
+      const smoothGrid = new Float32Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let sum = 0, cnt = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                sum += grid[nr * cols + nc];
+                cnt++;
+              }
+            }
+          }
+          smoothGrid[r * cols + c] = sum / cnt;
+        }
+      }
+
+      // 步驟 3：雙線性插值還原每個像素的連續紙張底色，推高曝光成純白底 + 實心深黑印刷線條與文字
+      // 清除比例：鉛筆灰階與表格灰底會落入高曝光純白區；印刷黑字、框線與插圖則保留並加深
+      const whiteCutoffRatio = opts.removeMarks ? 0.64 : 0.85;
 
       for (let y = 0; y < h; y++) {
-        const gy = Math.floor(y / gridSize);
+        const gy = Math.min(rows - 1.001, Math.max(0, (y / cellH) - 0.5));
+        const r0 = Math.floor(gy);
+        const r1 = Math.min(rows - 1, r0 + 1);
+        const fy = gy - r0;
+
         for (let x = 0; x < w; x++) {
+          const gx = Math.min(cols - 1.001, Math.max(0, (x / cellW) - 0.5));
+          const c0 = Math.floor(gx);
+          const c1 = Math.min(cols - 1, c0 + 1);
+          const fx = gx - c0;
+
+          // 連續雙線性插值計算當前座標的紙張純白基準
+          const topBg = smoothGrid[r0 * cols + c0] * (1 - fx) + smoothGrid[r0 * cols + c1] * fx;
+          const botBg = smoothGrid[r1 * cols + c0] * (1 - fx) + smoothGrid[r1 * cols + c1] * fx;
+          const paperWhite = topBg * (1 - fy) + botBg * fy;
+
           const p = y * w + x;
-          const gx = Math.floor(x / gridSize);
-          const paperWhite = localBg[gy * gw + gx];
-          const depth = Math.max(0, 1 - gray[p] / Math.max(1, paperWhite));
-          inkDepth[p] = depth;
-          // 凡是比紙張暗 12% 以上的像素（包含鉛筆、圈選、印刷文字、插圖）納入前景候選
-          if (depth > 0.12) {
-            foregroundMask[p] = 1;
-          }
-        }
-      }
+          const i = p * 4;
+          const lum = gray[p];
+          const cutoff = paperWhite * whiteCutoffRatio;
 
-      // 步驟 3：8-連通域幾何特徵分析 (Connected Component Analysis)
-      // 將前景分離成獨立筆劃/字元區塊，精準判斷「手寫鉛筆字/手畫圓圈」並徹底抹除
-      if (opts.removePencil) {
-        const visited = new Uint8Array(total);
-        const queue = new Int32Array(total);
-        const eraseMask = new Uint8Array(total);
-
-        const dx8 = [-1, 0, 1, -1, 1, -1, 0, 1];
-        const dy8 = [-1, -1, -1, 0, 0, 1, 1, 1];
-
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const startP = y * w + x;
-            if (!foregroundMask[startP] || visited[startP]) continue;
-
-            let head = 0, tail = 0;
-            queue[tail++] = startP;
-            visited[startP] = 1;
-
-            let minX = x, maxX = x, minY = y, maxY = y;
-            let pixelCount = 0;
-            let sumDepth = 0;
-            let maxDepth = 0;
-            let darkCoreCount = 0; // 統計真正接近印刷純黑核心 (depth > 0.56) 的像素數
-
-            while (head < tail) {
-              const curr = queue[head++];
-              const cx = curr % w;
-              const cy = (curr - cx) / w;
-
-              if (cx < minX) minX = cx;
-              if (cx > maxX) maxX = cx;
-              if (cy < minY) minY = cy;
-              if (cy > maxY) maxY = cy;
-
-              const dp = inkDepth[curr];
-              pixelCount++;
-              sumDepth += dp;
-              if (dp > maxDepth) maxDepth = dp;
-              if (dp > 0.56) darkCoreCount++;
-
-              for (let k = 0; k < 8; k++) {
-                const nx = cx + dx8[k];
-                const ny = cy + dy8[k];
-                if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
-                  const np = ny * w + nx;
-                  if (foregroundMask[np] && !visited[np]) {
-                    visited[np] = 1;
-                    queue[tail++] = np;
-                  }
-                }
-              }
-            }
-
-            const boxW = maxX - minX + 1;
-            const boxH = maxY - minY + 1;
-            const boxArea = boxW * boxH;
-            const fillRatio = pixelCount / Math.max(1, boxArea);
-            const meanDepth = sumDepth / Math.max(1, pixelCount);
-            const coreRatio = darkCoreCount / Math.max(1, pixelCount);
-
-            // 排除整行印刷長橫線（寬度極長且高度極扁，例如 boxW > 110 且 boxH <= 8）
-            const isPrintedLine = (boxW > 110 && boxH <= 9 && fillRatio > 0.35);
-            // 排除大型插圖外框（面積極大且有高密度純黑核心）
-            const isLargeIllustration = (boxW > 140 && boxH > 140 && coreRatio > 0.22);
-
-            let shouldErase = false;
-
-            if (!isPrintedLine && !isLargeIllustration) {
-              // 特徵 A：手畫圈選（圍繞單字的圓圈/橢圓：寬度大於 42px、高度大於 18px、空心佔空比低於 0.22）
-              const isHandDrawnCircle = (boxW >= 42 && boxH >= 18 && boxW <= 260 && boxH <= 120 && fillRatio < 0.22 && coreRatio < 0.35);
-
-              // 特徵 B：手寫鉛筆字跡（平均墨水深度偏淺 meanDepth < 0.44，且缺乏印刷字體的純黑核心 coreRatio < 0.26）
-              const isPencilHandwriting = (meanDepth < 0.44 && coreRatio < 0.26 && boxW < 240 && boxH < 120);
-
-              // 特徵 C：極淺鉛筆殘影或塗改痕跡（最大深度未達印刷油墨標準 maxDepth < 0.54）
-              const isFaintPencilMark = (maxDepth < 0.54 && pixelCount < 4500);
-
-              if (isHandDrawnCircle || isPencilHandwriting || isFaintPencilMark) {
-                shouldErase = true;
-              }
-            }
-
-            if (shouldErase) {
-              for (let idx = 0; idx < tail; idx++) {
-                eraseMask[queue[idx]] = 1;
-              }
-            }
-          }
-        }
-
-        // 對被判定為手寫/圈選的區塊做 1 像素邊緣擴張擦除，確保不留任何石墨灰邊
-        for (let y = 1; y < h - 1; y++) {
-          for (let x = 1; x < w - 1; x++) {
-            const p = y * w + x;
-            if (
-              eraseMask[p] ||
-              eraseMask[p - 1] || eraseMask[p + 1] ||
-              eraseMask[p - w] || eraseMask[p + w]
-            ) {
-              const i = p * 4;
+          if (lum >= cutoff) {
+            // 100% 純白省墨背景（消除陰影、折痕、灰底框填充與淺中灰鉛筆跡）
+            if (opts.pureWhite) {
               d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-              foregroundMask[p] = 0;
             }
-          }
-        }
-      }
-
-      // 步驟 4：純白省墨背景提亮，同時 100% 原樣保留並加固剩餘的印刷文字、底線與插圖
-      if (opts.pureWhite) {
-        for (let y = 0; y < h; y++) {
-          const gy = Math.floor(y / gridSize);
-          for (let x = 0; x < w; x++) {
-            const p = y * w + x;
-            const i = p * 4;
-            if (!foregroundMask[p]) {
-              // 紙張背景轉 100% 純白
-              d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-            } else {
-              // 保留下來的印刷文字與插圖：按紙張底色做無損對比校準，絕不變淺或斷裂
-              const gx = Math.floor(x / gridSize);
-              const paperWhite = localBg[gy * gw + gx];
-              const scale = 255 / Math.max(1, paperWhite * 0.94);
-              // 對印刷黑字稍微增強濃度，保持銳利清晰
-              const nr = Math.min(255, Math.round(d[i] * scale));
-              const ng = Math.min(255, Math.round(d[i + 1] * scale));
-              const nb = Math.min(255, Math.round(d[i + 2] * scale));
-              d[i] = nr < 170 ? Math.max(0, Math.round(nr * 0.78)) : nr;
-              d[i + 1] = ng < 170 ? Math.max(0, Math.round(ng * 0.78)) : ng;
-              d[i + 2] = nb < 170 ? Math.max(0, Math.round(nb * 0.78)) : nb;
-            }
+          } else {
+            // 印刷文字、獨立黑框線、填空橫線與插圖：實色深黑高對比度輸出
+            const norm = lum / Math.max(1, cutoff);
+            const gamma = opts.boldText ? 2.4 : 1.4;
+            const ink = Math.max(0, Math.min(255, Math.round(Math.pow(norm, gamma) * 145)));
+            d[i] = ink;
+            d[i + 1] = ink;
+            d[i + 2] = ink;
           }
         }
       }
