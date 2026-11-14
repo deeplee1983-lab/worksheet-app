@@ -24,37 +24,33 @@
     @media print {
       html, body {
         width: 210mm !important;
-        height: 297mm !important;
+        height: 296mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
+        overflow: hidden !important;
       }
       body > *:not(#print-area) {
         display: none !important;
       }
       #print-area {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        display: block !important;
+        position: static !important;
+        width: 210mm !important;
+        height: 296mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
       }
       #print-area img {
-        width: 100% !important;
-        height: 100% !important;
-        max-width: 100% !important;
-        max-height: 100% !important;
+        display: block !important;
+        width: 210mm !important;
+        height: 296mm !important;
+        max-width: none !important;
+        max-height: none !important;
         object-fit: contain !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
     }
   </style>
@@ -190,7 +186,7 @@
             </button>
           </div>
           <p class="text-xs text-slate-500 text-center">
-            💡 手機提示：點擊「儲存 A4 PNG」可選「儲存影像」直接存入相簿；點擊「匯出 PDF」可選「儲存到檔案」或直接分享列印
+            💡 手機提示：點擊「儲存 A4 PNG」可選「儲存影像」存入相簿；點擊「匯出 PDF」可點「下載」直接儲存單一 PDF 檔
           </p>
         </div>
       </div>
@@ -436,7 +432,7 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
     }
 
     fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
@@ -455,7 +451,7 @@
     window.addEventListener('mousemove', (e) => { if (isDragging) updateSlider(e.clientX); });
     compareContainer.addEventListener('touchmove', (e) => updateSlider(e.touches[0].clientX));
 
-    // 1. 儲存標準 A4 PNG（只傳 files，避免 iOS 多生出「文字」純文字檔）
+    // 1. 儲存標準 A4 PNG（圖片檔使用原生選單存入相簿）
     document.getElementById('download-png-btn').addEventListener('click', async () => {
       if (!restoredA4DataUrl) return;
       const blob = dataUrlToBlob(restoredA4DataUrl);
@@ -472,28 +468,18 @@
       triggerDownloadBlob(blob, '空白練習工作紙_A4.png');
     });
 
-    // 2. 匯出標準 A4 PDF（只傳 files，解決手機儲存時同時生成「文字 2」的重複檔案問題）
-    document.getElementById('download-pdf-btn').addEventListener('click', async () => {
+    // 2. 匯出標準 A4 PDF（改用標準 Blob <a download> 觸發原生單檔下載，徹底解決 iOS 產生「2個項目 / 文字」檔）
+    document.getElementById('download-pdf-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pdf.addImage(restoredA4DataUrl, 'PNG', 0, 0, 210, 297);
 
       const pdfBlob = pdf.output('blob');
-      const pdfFile = new File([pdfBlob], '空白練習工作紙_A4.pdf', { type: 'application/pdf' });
-
-      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        try {
-          await navigator.share({ files: [pdfFile] });
-          return;
-        } catch (err) {
-          if (err.name === 'AbortError') return;
-        }
-      }
       triggerDownloadBlob(pdfBlob, '空白練習工作紙_A4.pdf');
     });
 
-    // 3. 直接列印 A4（100% 滿版放大符合標準 A4 解析度比例，且維持第 1/1 頁）
+    // 3. 直接列印 A4（實體 210mm x 296mm 滿版鋪滿整張 A4，不縮在左上角，且維持頁面 1/1）
     document.getElementById('print-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const printImg = document.getElementById('print-img');
