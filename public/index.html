@@ -214,7 +214,7 @@
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1800;
+          const maxDim = 1500;
           let w = img.width, h = img.height;
           if (w > maxDim || h > maxDim) {
             if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
@@ -226,7 +226,7 @@
           ctx.drawImage(img, 0, 0, w, h);
 
           originalMimeType = 'image/jpeg';
-          originalDataUrl = canvas.toDataURL(originalMimeType, 0.9);
+          originalDataUrl = canvas.toDataURL(originalMimeType, 0.85);
           originalBase64 = originalDataUrl.split(',')[1];
 
           emptyPlaceholder.classList.add('hidden');
@@ -266,10 +266,21 @@
           })
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '處理失敗');
+        const rawText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (parseErr) {
+          throw new Error('伺服器回應格式異常 (' + res.status + ')：' + rawText.slice(0, 120));
+        }
 
-        restoredDataUrl = `data:${data.mimeType};base64,${data.imageBase64}`;
+        if (!res.ok) throw new Error(data.error || '處理失敗');
+        if (!data.imageBase64) throw new Error('伺服器未回傳圖片數據');
+
+        const cleanMime = (data.mimeType && data.mimeType.startsWith('image/')) ? data.mimeType : 'image/png';
+        const cleanBase64 = data.imageBase64.replace(/\s+/g, '');
+        restoredDataUrl = `data:${cleanMime};base64,${cleanBase64}`;
+
         beforeImg.src = originalDataUrl;
         afterImg.src = restoredDataUrl;
 
