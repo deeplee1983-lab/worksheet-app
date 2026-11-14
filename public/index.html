@@ -23,8 +23,8 @@
     }
     @media print {
       html, body {
-        width: 210mm;
-        height: 297mm;
+        width: 210mm !important;
+        height: 290mm !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -35,17 +35,21 @@
       }
       #print-area {
         display: flex !important;
-        align-items: center;
-        justify-content: center;
-        width: 210mm;
-        height: 297mm;
-        margin: 0;
-        padding: 0;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 210mm !important;
+        height: 290mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
       #print-area img {
-        width: 210mm;
-        height: 297mm;
-        object-fit: contain;
+        max-width: 196mm !important;
+        max-height: 280mm !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
       }
     }
   </style>
@@ -168,16 +172,21 @@
           </div>
         </div>
 
-        <div id="action-bar" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button id="download-png-btn" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm transition">
-            📥 下載 PNG 圖片
-          </button>
-          <button id="download-pdf-btn" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition">
-            📄 匯出 A4 PDF 檔
-          </button>
-          <button id="print-btn" class="py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm border border-indigo-200 transition">
-            🖨️ 直接列印 A4
-          </button>
+        <div id="action-bar" class="hidden mt-4 space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button id="download-png-btn" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm transition">
+              📥 儲存 PNG 圖片
+            </button>
+            <button id="download-pdf-btn" class="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition">
+              📄 匯出 A4 PDF 檔
+            </button>
+            <button id="print-btn" class="py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm border border-indigo-200 transition">
+              🖨️ 直接列印 A4
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 text-center">
+            💡 手機提示：點擊「儲存 PNG」可選「儲存影像」直接存入相簿；點擊「匯出 PDF」可選「儲存到檔案」或直接分享列印
+          </p>
         </div>
       </div>
     </div>
@@ -211,6 +220,7 @@
     let loadedImageObj = null;
     let originalDataUrl = '';
     let restoredDataUrl = '';
+    let restoredRatio = 1.414;
 
     function syncExactDimensions() {
       if (!compareContainer.classList.contains('hidden')) {
@@ -231,12 +241,14 @@
 
     function runRestore() {
       if (!loadedImageObj) return;
-      restoredDataUrl = processWorksheetCanvas(loadedImageObj, {
+      const result = processWorksheetCanvas(loadedImageObj, {
         removeRed: document.getElementById('opt-red').checked,
         removePencil: document.getElementById('opt-pencil').checked,
         pureWhite: document.getElementById('opt-white').checked,
         strength: Number(strengthSlider.value),
       });
+      restoredDataUrl = result.dataUrl;
+      restoredRatio = result.height / result.width;
 
       beforeImg.src = originalDataUrl;
       afterImg.src = restoredDataUrl;
@@ -301,7 +313,6 @@
       img.src = objectUrl;
     }
 
-    // 雙層高精準筆跡剝離引擎：強力清除鉛筆灰階與紅筆批改，保留深黑印刷體與插圖
     function processWorksheetCanvas(img, opts) {
       const maxDim = 1600;
       let w = img.width, h = img.height;
@@ -323,7 +334,6 @@
         lumArr[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
       }
 
-      // 計算局部紙張最亮背景值（克服手機斜拍陰影）
       const gridSize = 24;
       const gw = Math.ceil(w / gridSize);
       const gh = Math.ceil(h / gridSize);
@@ -346,7 +356,6 @@
         }
       }
 
-      // 提高鉛筆剝離比例：讓所有淺灰、中灰鉛筆字跡都低於保留門檻而變成純白，只留極深黑印刷體
       const cutoffRatio = opts.removePencil ? (0.92 - (opts.strength / 100) * 0.65) : 0.78;
 
       for (let y = 0; y < h; y++) {
@@ -360,7 +369,6 @@
           const minC = Math.min(r, g, b);
           const sat = maxC === 0 ? 0 : (maxC - minC) / maxC;
 
-          // 1. 濾除紅筆/藍筆/粉紅批改與塗改痕跡
           if (opts.removeRed && sat > 0.14 && (r > g + 14 || b > r + 20)) {
             d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
             continue;
@@ -375,7 +383,6 @@
             if (lum > threshold) {
               d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
             } else {
-              // 印刷文字與插圖銳利加深成純黑
               const ratio = lum / Math.max(1, threshold);
               const dark = Math.max(0, Math.min(255, Math.pow(ratio, 2.2) * 140));
               d[i] = dark; d[i + 1] = dark; d[i + 2] = dark;
@@ -385,7 +392,28 @@
       }
 
       ctx.putImageData(imgData, 0, 0);
-      return canvas.toDataURL('image/png');
+      return { dataUrl: canvas.toDataURL('image/png'), width: w, height: h };
+    }
+
+    function dataUrlToBlob(dataUrl) {
+      const arr = dataUrl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    function triggerDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
     fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
@@ -404,26 +432,71 @@
     window.addEventListener('mousemove', (e) => { if (isDragging) updateSlider(e.clientX); });
     compareContainer.addEventListener('touchmove', (e) => updateSlider(e.touches[0].clientX));
 
-    document.getElementById('download-png-btn').addEventListener('click', () => {
+    // 1. 儲存 PNG（手機自動喚起「儲存影像」進相簿，電腦直接下載至預設下載資料夾）
+    document.getElementById('download-png-btn').addEventListener('click', async () => {
       if (!restoredDataUrl) return;
-      const a = document.createElement('a');
-      a.href = restoredDataUrl;
-      a.download = '空白練習工作紙.png';
-      a.click();
+      const blob = dataUrlToBlob(restoredDataUrl);
+      const file = new File([blob], '空白練習工作紙.png', { type: 'image/png' });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: '空白練習工作紙',
+          });
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+      }
+      triggerDownloadBlob(blob, '空白練習工作紙.png');
     });
 
-    document.getElementById('download-pdf-btn').addEventListener('click', () => {
+    // 2. 匯出 A4 PDF（按原圖比例等比縮放居中放入 A4，手機可選「儲存到檔案」或分享，電腦直接下載 .pdf）
+    document.getElementById('download-pdf-btn').addEventListener('click', async () => {
       if (!restoredDataUrl) return;
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(restoredDataUrl, 'PNG', 0, 0, 210, 297);
-      pdf.save('空白練習工作紙_A4.pdf');
+
+      const pageW = 210, pageH = 297, margin = 8;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      let drawW = maxW;
+      let drawH = drawW * restoredRatio;
+      if (drawH > maxH) {
+        drawH = maxH;
+        drawW = drawH / restoredRatio;
+      }
+      const offsetX = (pageW - drawW) / 2;
+      const offsetY = (pageH - drawH) / 2;
+
+      pdf.addImage(restoredDataUrl, 'PNG', offsetX, offsetY, drawW, drawH);
+
+      const pdfBlob = pdf.output('blob');
+      const pdfFile = new File([pdfBlob], '空白練習工作紙_A4.pdf', { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            files: [pdfFile],
+            title: '空白練習工作紙_A4.pdf',
+          });
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+      }
+      triggerDownloadBlob(pdfBlob, '空白練習工作紙_A4.pdf');
     });
 
+    // 3. 直接列印 A4（嚴格鎖定單頁 1/1，不溢出換頁）
     document.getElementById('print-btn').addEventListener('click', () => {
       if (!restoredDataUrl) return;
-      document.getElementById('print-img').src = restoredDataUrl;
-      setTimeout(() => window.print(), 200);
+      const printImg = document.getElementById('print-img');
+      printImg.onload = () => {
+        setTimeout(() => window.print(), 150);
+      };
+      printImg.src = restoredDataUrl;
     });
   </script>
 </body>
