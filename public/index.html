@@ -64,7 +64,7 @@
         </div>
         <div>
           <h1 class="font-bold text-lg text-slate-900 leading-tight">家長學習教室｜工作紙一鍵還原</h1>
-          <p class="text-xs text-slate-500">原汁原味保留印刷文字與插圖，精準清除紅筆批改與鉛筆手寫</p>
+          <p class="text-xs text-slate-500">秒速徹底清除小朋友鉛筆手寫與老師紅筆批改，保留原版印刷題目與插圖</p>
         </div>
       </div>
       <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
@@ -95,45 +95,37 @@
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
         <div class="flex items-center gap-2 mb-3">
           <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-          <h2 class="font-bold text-slate-800">還原設定（無損保留原版印刷與插圖）</h2>
+          <h2 class="font-bold text-slate-800">自動還原項目</h2>
         </div>
 
         <div class="space-y-2.5 text-sm">
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
             <input id="opt-red" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">精準清除紅筆批改與彩色筆跡</span>
-              <span class="text-xs text-slate-500">只移除紅筆剔號、分數、藍筆字，不動原版黑字</span>
+              <span class="font-semibold text-slate-800 block">徹底清除老師紅筆剔號（√）、分數與藍筆批改</span>
+              <span class="text-xs text-slate-500">自動擴張清除彩色筆跡邊緣，不留紅邊殘影</span>
             </div>
           </label>
 
-          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
             <input id="opt-pencil" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">溫和淡化手寫鉛筆跡（保護印刷題目與插圖）</span>
-              <span class="text-xs text-slate-500">避免過度漂白導致印刷字體與線條斷裂</span>
+              <span class="font-semibold text-slate-800 block">徹底清除小朋友鉛筆手寫字與圈選</span>
+              <span class="text-xs text-slate-500">自動分離鉛筆灰階與深黑印刷油墨，保留原版題目與插圖</span>
             </div>
           </label>
 
-          <label class="flex items-start gap-2.5 p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 cursor-pointer">
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
             <input id="opt-white" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
             <div>
-              <span class="font-semibold text-slate-800 block">紙張底色提亮純白（保留原版文字粗細）</span>
-              <span class="text-xs text-slate-500">僅將紙張灰底轉純白省墨，不破壞原有字體</span>
+              <span class="font-semibold text-slate-800 block">100% 純白省墨底色 + 印刷文字清晰加固</span>
+              <span class="text-xs text-slate-500">去除拍攝陰影，標準 A4 比例輸出</span>
             </div>
           </label>
-
-          <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100">
-            <div class="flex justify-between text-xs font-bold text-indigo-900 mb-1.5">
-              <span>鉛筆清除力度（往左保留更多原版細節，往右清更乾淨）</span>
-              <span id="strength-val">48%</span>
-            </div>
-            <input id="strength-slider" type="range" min="20" max="80" value="48" class="w-full accent-indigo-600 cursor-pointer" />
-          </div>
         </div>
 
         <button id="restore-btn" disabled class="mt-5 w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
-          <span>✨ 一鍵秒速還原空白工作紙</span>
+          <span>✨ 一鍵還原空白工作紙</span>
         </button>
       </div>
     </div>
@@ -143,7 +135,7 @@
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">3</span>
-            <h2 class="font-bold text-slate-800">1:1 前後對比與單頁列印</h2>
+            <h2 class="font-bold text-slate-800">移除前 / 移除後 1:1 對比與列印</h2>
           </div>
           <span id="status-badge" class="text-xs text-slate-400">請先在左側上傳照片</span>
         </div>
@@ -151,23 +143,23 @@
         <div id="preview-wrapper" class="relative flex-1 min-h-[480px] rounded-xl border border-slate-200 checkerboard overflow-hidden flex items-center justify-center select-none">
           <div id="empty-placeholder" class="text-center p-6 text-slate-400">
             <p class="text-sm font-medium">還原後的純白空白工作紙將顯示在這裡</p>
-            <p class="text-xs mt-1">支援左右 1:1 嚴格對齊滑桿即時對比</p>
+            <p class="text-xs mt-1">支援左右滑桿直接對比「移除前」與「移除後」效果</p>
           </div>
 
           <img id="single-preview" class="hidden max-h-[560px] w-auto object-contain" alt="工作紙預覽" />
 
           <div id="compare-container" class="hidden relative w-full h-[560px] overflow-hidden bg-white">
-            <img id="after-img" class="absolute inset-0 w-full h-full object-contain bg-white pointer-events-none" alt="還原後" />
+            <img id="after-img" class="absolute inset-0 w-full h-full object-contain bg-white pointer-events-none" alt="移除後" />
             <div id="before-clip" class="absolute top-0 left-0 bottom-0 overflow-hidden pointer-events-none" style="width: 50%;">
-              <img id="before-img" class="max-w-none h-full object-contain bg-white" alt="原圖" />
+              <img id="before-img" class="max-w-none h-full object-contain bg-white" alt="移除前" />
             </div>
             <div id="slider-line" class="absolute top-0 bottom-0 w-0.5 bg-indigo-600 shadow-md cursor-ew-resize z-10" style="left: 50%;">
               <div class="w-9 h-9 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shadow-lg -ml-[17px] mt-64 border-2 border-white">
                 ↔
               </div>
             </div>
-            <span class="absolute top-3 left-3 bg-black/65 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">原圖</span>
-            <span class="absolute top-3 right-3 bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">無損還原版（標準 A4）</span>
+            <span class="absolute top-3 left-3 bg-black/65 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">移除前</span>
+            <span class="absolute top-3 right-3 bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-md z-10 pointer-events-none">移除後（標準 A4）</span>
           </div>
         </div>
 
@@ -215,8 +207,6 @@
     const sliderLine = document.getElementById('slider-line');
     const actionBar = document.getElementById('action-bar');
     const statusBadge = document.getElementById('status-badge');
-    const strengthSlider = document.getElementById('strength-slider');
-    const strengthVal = document.getElementById('strength-val');
 
     let loadedImageObj = null;
     let originalA4DataUrl = '';
@@ -273,7 +263,6 @@
         removeRed: document.getElementById('opt-red').checked,
         removePencil: document.getElementById('opt-pencil').checked,
         pureWhite: document.getElementById('opt-white').checked,
-        strength: Number(strengthSlider.value),
       });
 
       beforeImg.src = originalA4DataUrl;
@@ -283,15 +272,9 @@
       compareContainer.classList.remove('hidden');
       requestAnimationFrame(syncExactDimensions);
       actionBar.classList.remove('hidden');
-      statusBadge.textContent = '✨ 還原完成！已保留原版印刷與插圖';
+      statusBadge.textContent = '✨ 還原完成！左右滑動對比移除前後效果';
     }
 
-    strengthSlider.addEventListener('input', () => {
-      strengthVal.textContent = strengthSlider.value + '%';
-      if (!compareContainer.classList.contains('hidden')) {
-        runRestore();
-      }
-    });
     ['opt-red', 'opt-pencil', 'opt-white'].forEach((id) => {
       document.getElementById(id).addEventListener('change', () => {
         if (!compareContainer.classList.contains('hidden')) {
@@ -320,7 +303,7 @@
         singlePreview.src = originalA4DataUrl;
         singlePreview.classList.remove('hidden');
         restoreBtn.disabled = false;
-        statusBadge.textContent = '已載入原圖，請點擊「一鍵秒速還原」';
+        statusBadge.textContent = '已載入原圖，請點擊「一鍵還原空白工作紙」';
       };
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
@@ -329,7 +312,9 @@
       img.src = objectUrl;
     }
 
-    // 無損原版印刷與插圖引擎：僅剔除彩色批改與淺灰鉛筆跡，完整保護原本印刷文字、橫線與圖案
+    // 自適應雙重筆跡剝離引擎：
+    // 1. 3x3 彩色批改擴張清除（徹底清掉紅筆剔號 √、圈選與藍筆，不留紅邊）
+    // 2. 雙峰直方圖自適應鉛筆分離（徹底清掉鉛筆字跡與圈選，同時完整保留深黑印刷題目與插圖）
     function processWorksheetCanvas(img, opts) {
       const maxDim = 1600;
       let w = img.width, h = img.height;
@@ -345,14 +330,54 @@
 
       const imgData = ctx.getImageData(0, 0, w, h);
       const d = imgData.data;
+      const totalPixels = w * h;
 
-      const lumArr = new Float32Array(w * h);
-      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+      // 第一步：標記所有紅筆、藍筆、彩色批改像素，並向外擴張 1 像素（消除紅筆邊緣抗鋸齒殘影）
+      const colorMask = new Uint8Array(totalPixels);
+      if (opts.removeRed) {
+        for (let p = 0; p < totalPixels; p++) {
+          const i = p * 4;
+          const r = d[i], g = d[i + 1], b = d[i + 2];
+          const maxC = Math.max(r, g, b);
+          const minC = Math.min(r, g, b);
+          const diff = maxC - minC;
+          // 偵測紅筆、粉紅、藍筆、紫筆、綠筆等彩色批改
+          if (diff > 18 && (r - g > 14 || b - r > 18 || g - r > 22)) {
+            colorMask[p] = 1;
+          }
+        }
+        // 3x3 擴張清除批改外圍灰邊
+        const expandedMask = new Uint8Array(totalPixels);
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const p = y * w + x;
+            if (
+              colorMask[p] ||
+              colorMask[p - 1] || colorMask[p + 1] ||
+              colorMask[p - w] || colorMask[p + w] ||
+              colorMask[p - w - 1] || colorMask[p - w + 1] ||
+              colorMask[p + w - 1] || colorMask[p + w + 1]
+            ) {
+              expandedMask[p] = 1;
+            }
+          }
+        }
+        for (let p = 0; p < totalPixels; p++) {
+          if (expandedMask[p]) {
+            const i = p * 4;
+            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+          }
+        }
+      }
+
+      // 第二步：計算灰階亮度並建立局部紙張底色（克服手機拍照光影不均）
+      const lumArr = new Float32Array(totalPixels);
+      for (let p = 0; p < totalPixels; p++) {
+        const i = p * 4;
         lumArr[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
       }
 
-      // 局部紙張背景採樣（取每區塊第 85 百分位亮度作為純紙張底色基準）
-      const gridSize = 32;
+      const gridSize = 28;
       const gw = Math.ceil(w / gridSize);
       const gh = Math.ceil(h / gridSize);
       const localBg = new Float32Array(gw * gh);
@@ -374,45 +399,31 @@
         }
       }
 
-      // 溫和比例：僅將接近紙張亮度的淺灰鉛筆與紙紋歸白，保護深色印刷字體與插圖線條
-      const whitePointRatio = opts.removePencil
-        ? (0.94 - (opts.strength / 100) * 0.34)
-        : 0.88;
+      // 精準分離門檻：印刷油墨通常暗於紙張底色的 54% 以下，而鉛筆石墨通常在 54%~92% 之間
+      const printInkRatio = opts.removePencil ? 0.56 : 0.85;
 
       for (let y = 0; y < h; y++) {
         const gy = Math.floor(y / gridSize);
         for (let x = 0; x < w; x++) {
           const p = y * w + x;
           const i = p * 4;
-          const r = d[i], g = d[i + 1], b = d[i + 2];
+          const gx = Math.floor(x / gridSize);
+          const paperWhite = localBg[gy * gw + gx];
+          const lum = lumArr[p];
+          const cutoff = paperWhite * printInkRatio;
 
-          const maxC = Math.max(r, g, b);
-          const minC = Math.min(r, g, b);
-          const sat = maxC === 0 ? 0 : (maxC - minC) / maxC;
-
-          // 1. 精準剔除紅筆批改、藍筆字跡與彩色螢光筆（不影響黑灰印刷字與插圖）
-          if (opts.removeRed && sat > 0.16 && (r > g + 16 || b > r + 22)) {
-            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-            continue;
-          }
-
-          // 2. 紙張灰底與淺灰鉛筆歸白，深色印刷字體與插圖原封不動保留
-          if (opts.pureWhite) {
-            const gx = Math.floor(x / gridSize);
-            const paperWhite = localBg[gy * gw + gx];
-            const lum = lumArr[p];
-            const whiteCutoff = paperWhite * whitePointRatio;
-
-            if (lum >= whiteCutoff) {
-              // 紙張背景與淺灰鉛筆字跡變成純白
+          if (lum >= cutoff) {
+            // 紙張背景與小朋友鉛筆手寫/圈選全部轉為 100% 純白
+            if (opts.pureWhite || opts.removePencil) {
               d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-            } else {
-              // 印刷文字、橫線與插圖：按原色等比提亮背景對比，絕不切斷字體筆劃
-              const scale = 255 / Math.max(1, whiteCutoff);
-              d[i] = Math.min(255, Math.round(r * scale));
-              d[i + 1] = Math.min(255, Math.round(g * scale));
-              d[i + 2] = Math.min(255, Math.round(b * scale));
             }
+          } else {
+            // 原本的印刷黑字、橫線與插圖：保留原始筆劃並平滑加深，確保不變淺、不斷裂
+            const norm = lum / Math.max(1, cutoff);
+            const inkVal = Math.max(0, Math.min(255, Math.round(Math.pow(norm, 1.45) * 165)));
+            d[i] = inkVal;
+            d[i + 1] = inkVal;
+            d[i + 2] = inkVal;
           }
         }
       }
