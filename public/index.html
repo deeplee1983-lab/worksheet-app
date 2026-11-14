@@ -24,7 +24,7 @@
     @media print {
       html, body {
         width: 210mm !important;
-        height: 296mm !important;
+        height: 288mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
@@ -37,15 +37,18 @@
         display: block !important;
         position: static !important;
         width: 210mm !important;
-        height: 296mm !important;
+        height: 288mm !important;
         margin: 0 !important;
         padding: 0 !important;
+        overflow: hidden !important;
         background: #ffffff !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
       #print-area img {
         display: block !important;
         width: 210mm !important;
-        height: 296mm !important;
+        height: 288mm !important;
         max-width: none !important;
         max-height: none !important;
         object-fit: contain !important;
@@ -186,7 +189,7 @@
             </button>
           </div>
           <p class="text-xs text-slate-500 text-center">
-            💡 手機提示：點擊「儲存 A4 PNG」可選「儲存影像」存入相簿；點擊「匯出 PDF」可點「下載」直接儲存單一 PDF 檔
+            💡 手機提示：點擊「儲存 A4 PNG」可選「儲存影像」存入相簿；點擊「匯出 PDF」會直接跳出「下載」儲存單一 PDF 檔
           </p>
         </div>
       </div>
@@ -222,7 +225,6 @@
     let originalA4DataUrl = '';
     let restoredA4DataUrl = '';
 
-    // 輔助公式：將圖片等比例放大填滿標準 A4 畫布（1240 x 1754，僅留 16px 窄邊確保滿版清晰）
     function fitImageToStandardA4Canvas(sourceCanvasOrImg) {
       const A4_W = 1240;
       const A4_H = 1754;
@@ -468,18 +470,19 @@
       triggerDownloadBlob(blob, '空白練習工作紙_A4.png');
     });
 
-    // 2. 匯出標準 A4 PDF（改用標準 Blob <a download> 觸發原生單檔下載，徹底解決 iOS 產生「2個項目 / 文字」檔）
+    // 2. 匯出標準 A4 PDF（使用 application/octet-stream 強制觸發手機與電腦直接下載單一 PDF 檔案，不在原頁打開預覽）
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       pdf.addImage(restoredA4DataUrl, 'PNG', 0, 0, 210, 297);
 
-      const pdfBlob = pdf.output('blob');
-      triggerDownloadBlob(pdfBlob, '空白練習工作紙_A4.pdf');
+      const rawBuffer = pdf.output('arraybuffer');
+      const forceDownloadBlob = new Blob([rawBuffer], { type: 'application/octet-stream' });
+      triggerDownloadBlob(forceDownloadBlob, '空白練習工作紙_A4.pdf');
     });
 
-    // 3. 直接列印 A4（實體 210mm x 296mm 滿版鋪滿整張 A4，不縮在左上角，且維持頁面 1/1）
+    // 3. 直接列印 A4（實體 210mm x 288mm 滿版鋪滿整張 A4，嚴格鎖定頁面 1/1，不溢出第 2 頁）
     document.getElementById('print-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
       const printImg = document.getElementById('print-img');
