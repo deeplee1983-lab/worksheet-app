@@ -64,11 +64,11 @@
         </div>
         <div>
           <h1 class="font-bold text-lg text-slate-900 leading-tight">家長學習教室｜工作紙一鍵還原</h1>
-          <p class="text-xs text-slate-500">免綁卡無限免費｜一鍵淨化白底、清除紅筆與鉛筆手寫，保留清晰印刷題目與插圖</p>
+          <p class="text-xs text-slate-500">免綁卡無限免費｜橫線定位剷除手寫答案與紅筆批改，保留原版印刷文字、底線與插圖</p>
         </div>
       </div>
       <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
-        本地極速引擎（秒速・免費）
+        橫線定位引擎（秒速・免費）
       </div>
     </div>
   </header>
@@ -99,10 +99,10 @@
         </div>
 
         <p class="text-xs text-slate-500 leading-relaxed mb-4">
-          無需繁瑣設定，點擊下方按鈕即自動執行：<br />
+          點擊下方按鈕即自動執行：<br />
           • 清除老師紅筆批改（✓ / ✗）與藍筆痕跡<br />
-          • 淡化抹除淺中灰鉛筆作答與拍攝陰影折痕<br />
-          • 還原 100% 純白省墨底色與深黑印刷文字框線
+          • 定位所有作答橫線並剷除橫線上方的手寫鉛筆字<br />
+          • 還原 100% 純白無雜點底色與深黑印刷字體插圖
         </p>
 
         <button id="restore-btn" disabled class="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
@@ -240,7 +240,7 @@
 
     function runRestore() {
       if (!loadedImageObj) return;
-      restoredA4DataUrl = processWorksheetCleanScan(loadedImageObj);
+      restoredA4DataUrl = processWorksheetByLineDetection(loadedImageObj);
 
       beforeImg.src = originalA4DataUrl;
       afterImg.src = restoredA4DataUrl;
@@ -282,12 +282,12 @@
     }
 
     /**
-     * 積分圖逐像素自適應白平衡掃描引擎（Bradley-Roth Integral Image Thresholding）：
-     * - 每個像素精準比對周圍 31x31 窗口的局部平均紙張亮度，徹底解決陰影整片變黑問題
-     * - 紅筆/藍筆批改像素直接轉純白
-     * - 淺中灰鉛筆手寫與灰底表格填充推向純白，深黑印刷文字、框線與插圖實色加深
+     * 橫線定位手寫剷除 + 全局雙線性純白引擎：
+     * 1. YCbCr 色度分離移除所有紅筆、藍筆批改（無反白黑洞）
+     * 2. 大半徑平滑背景估計（無右下角陰影碎塊雜點）
+     * 3. 偵測所有印刷作答橫線（Horizontal Underline），精準剷除橫線上方的手寫鉛筆字（同時保留橫線與插圖）
      */
-    function processWorksheetCleanScan(img) {
+    function processWorksheetByLineDetection(img) {
       const maxDim = 1600;
       let w = img.width, h = img.height;
       if (w > maxDim || h > maxDim) {
@@ -304,14 +304,14 @@
       const d = imgData.data;
       const total = w * h;
 
-      // 1. 清除紅筆、藍筆批改（轉為周圍紙張亮度的純白像素，避免產生反白黑洞）
+      // 步驟 1：YCbCr 色度分離移除紅筆/藍筆批改（3x3 膨脹）
       const colorMask = new Uint8Array(total);
       for (let p = 0; p < total; p++) {
         const i = p * 4;
         const r = d[i], g = d[i + 1], b = d[i + 2];
-        const maxC = Math.max(r, g, b);
-        const minC = Math.min(r, g, b);
-        if (maxC - minC > 16 && (r - g > 13 || b - r > 18 || g - r > 22)) {
+        const cb = -0.1687 * r - 0.3313 * g + 0.5 * b;
+        const cr = 0.5 * r - 0.4187 * g - 0.0813 * b;
+        if (Math.hypot(cb, cr) > 10 && (cr > 5 || cb > 7 || (r - g > 11))) {
           colorMask[p] = 1;
         }
       }
@@ -329,61 +329,187 @@
         }
       }
 
-      // 2. 建立灰階圖與積分圖（Integral Image），O(1) 速度計算每個像素周圍 35x35 局部平均亮度
+      // 步驟 2：平滑大窗口背景照明估計（8x11 大網格 + 雙線性插值，徹底消除右下角陰影碎塊）
       const gray = new Float32Array(total);
       for (let p = 0; p < total; p++) {
         const i = p * 4;
         gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
       }
 
-      const integral = new Float64Array((w + 1) * (h + 1));
-      const stride = w + 1;
-      for (let y = 0; y < h; y++) {
-        let rowSum = 0;
-        const yIdx = (y + 1) * stride;
-        const prevYIdx = y * stride;
-        const gRow = y * w;
-        for (let x = 0; x < w; x++) {
-          rowSum += gray[gRow + x];
-          integral[yIdx + x + 1] = integral[prevYIdx + x + 1] + rowSum;
+      const cols = 8, rows = 11;
+      const cellW = w / cols;
+      const cellH = h / rows;
+      const grid = new Float32Array(cols * rows);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let maxVal = 175;
+          const y0 = Math.floor(r * cellH);
+          const y1 = Math.min(h, Math.floor((r + 1) * cellH));
+          const x0 = Math.floor(c * cellW);
+          const x1 = Math.min(w, Math.floor((c + 1) * cellW));
+          for (let y = y0; y < y1; y += 4) {
+            for (let x = x0; x < x1; x += 4) {
+              const v = gray[y * w + x];
+              if (v > maxVal) maxVal = v;
+            }
+          }
+          grid[r * cols + c] = maxVal;
         }
       }
 
-      // 3. 逐像素自適應白底與深黑印刷強化（半徑 R = 20，窗口 41x41）
-      const R = 20;
-      // 靈敏度係數：比局部紙張平均亮度暗超過 19% 才保留為印刷黑字/線框，其餘陰影、灰底與淺鉛筆全轉純白
-      const keepFactor = 0.81;
+      const smoothGrid = new Float32Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let sum = 0, cnt = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                sum += grid[nr * cols + nc];
+                cnt++;
+              }
+            }
+          }
+          smoothGrid[r * cols + c] = sum / cnt;
+        }
+      }
+
+      const inkMask = new Uint8Array(total);
+      const inkDepth = new Float32Array(total);
 
       for (let y = 0; y < h; y++) {
-        const y0 = Math.max(0, y - R);
-        const y1 = Math.min(h - 1, y + R);
-        const topOff = y0 * stride;
-        const botOff = (y1 + 1) * stride;
-        const gRow = y * w;
+        const gy = Math.min(rows - 1.001, Math.max(0, (y / cellH) - 0.5));
+        const r0 = Math.floor(gy);
+        const r1 = Math.min(rows - 1, r0 + 1);
+        const fy = gy - r0;
 
         for (let x = 0; x < w; x++) {
-          const x0 = Math.max(0, x - R);
-          const x1 = Math.min(w - 1, x + R);
-          const count = (x1 - x0 + 1) * (y1 - y0 + 1);
-          const sum = integral[botOff + x1 + 1] - integral[topOff + x1 + 1] - integral[botOff + x0] + integral[topOff + x0];
-          const localMean = sum / count;
+          const gx = Math.min(cols - 1.001, Math.max(0, (x / cellW) - 0.5));
+          const c0 = Math.floor(gx);
+          const c1 = Math.min(cols - 1, c0 + 1);
+          const fx = gx - c0;
 
-          const p = gRow + x;
-          const i = p * 4;
-          const lum = gray[p];
-          const threshold = localMean * keepFactor;
+          const topBg = smoothGrid[r0 * cols + c0] * (1 - fx) + smoothGrid[r0 * cols + c1] * fx;
+          const botBg = smoothGrid[r1 * cols + c0] * (1 - fx) + smoothGrid[r1 * cols + c1] * fx;
+          const paperWhite = topBg * (1 - fy) + botBg * fy;
 
-          if (lum >= threshold) {
-            // 100% 純白省墨底色
-            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
-          } else {
-            // 印刷文字、表格黑框線、橫線與插圖：實色深黑輸出
-            const ratio = lum / Math.max(1, threshold);
-            const ink = Math.max(0, Math.min(255, Math.round(Math.pow(ratio, 2.2) * 140)));
-            d[i] = ink;
-            d[i + 1] = ink;
-            d[i + 2] = ink;
+          const p = y * w + x;
+          const depth = Math.max(0, 1 - gray[p] / Math.max(1, paperWhite));
+          inkDepth[p] = depth;
+
+          // 只有比局部紙張暗超過 22% 的才算有效筆劃（紙張陰影與折痕直接過濾掉，不產生碎塊）
+          if (depth > 0.22) {
+            inkMask[p] = 1;
           }
+        }
+      }
+
+      // 步驟 3：偵測所有水平填空橫線與長答題線，將橫線正上方（手寫作答區）的筆劃剷除，並保留橫線本身
+      const lineMask = new Uint8Array(total);
+      const eraseZone = new Uint8Array(total);
+      const minLineLen = Math.round(w * 0.065); // 至少佔寬度 6.5% 的水平線段
+
+      for (let y = 2; y < h - 2; y++) {
+        let runStart = -1;
+        for (let x = 0; x <= w; x++) {
+          const hasInk = x < w && (inkMask[y * w + x] || inkMask[(y - 1) * w + x] || inkMask[(y + 1) * w + x]);
+          if (hasInk) {
+            if (runStart === -1) runStart = x;
+          } else if (runStart !== -1) {
+            const runLen = x - runStart;
+            if (runLen >= minLineLen) {
+              // 標記該水平線段為「受保護的印刷橫線」
+              for (let lx = runStart; lx < x; lx++) {
+                for (let ly = y - 2; ly <= y + 2; ly++) {
+                  lineMask[ly * w + lx] = 1;
+                }
+              }
+              // 將該橫線上方 4px 至 44px 的作答區域標記為「手寫答案剷除區」
+              const topEraseY = Math.max(0, y - Math.round(h * 0.032));
+              const botEraseY = Math.max(0, y - 3);
+              for (let ey = topEraseY; ey <= botEraseY; ey++) {
+                for (let ex = runStart + 2; ex < x - 2; ex++) {
+                  eraseZone[ey * w + ex] = 1;
+                }
+              }
+            }
+            runStart = -1;
+          }
+        }
+      }
+
+      // 步驟 4：連通域延伸剷除（凡是觸碰到橫線上方的手寫字母，連同向下超出橫線的字母尾巴如 y, g, p 一併剷除）
+      const visited = new Uint8Array(total);
+      const queue = new Int32Array(total);
+      const dx8 = [-1, 0, 1, -1, 1, -1, 0, 1];
+      const dy8 = [-1, -1, -1, 0, 0, 1, 1, 1];
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const startP = y * w + x;
+          if (!inkMask[startP] || lineMask[startP] || visited[startP]) continue;
+
+          let head = 0, tail = 0;
+          queue[tail++] = startP;
+          visited[startP] = 1;
+
+          let touchesEraseZone = false;
+          let sumDepth = 0;
+          let minX = x, maxX = x, minY = y, maxY = y;
+
+          while (head < tail) {
+            const curr = queue[head++];
+            const cx = curr % w;
+            const cy = (curr - cx) / w;
+
+            if (cx < minX) minX = cx;
+            if (cx > maxX) maxX = cx;
+            if (cy < minY) minY = cy;
+            if (cy > maxY) maxY = cy;
+
+            if (eraseZone[curr]) touchesEraseZone = true;
+            sumDepth += inkDepth[curr];
+
+            for (let k = 0; k < 8; k++) {
+              const nx = cx + dx8[k];
+              const ny = cy + dy8[k];
+              if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                const np = ny * w + nx;
+                // 遇到受保護的水平橫線即停止蔓延，絕不擦斷橫線
+                if (inkMask[np] && !lineMask[np] && !visited[np]) {
+                  visited[np] = 1;
+                  queue[tail++] = np;
+                }
+              }
+            }
+          }
+
+          const boxW = maxX - minX + 1;
+          const boxH = maxY - minY + 1;
+          const meanDepth = sumDepth / Math.max(1, tail);
+          const isLargeIllustration = (boxW > 130 && boxH > 130);
+
+          // 剷除條件：(1) 位於橫線上方的手寫答案字跡，或 (2) 淺灰鉛筆字跡 (meanDepth < 0.44 且非大型插圖)
+          if (!isLargeIllustration && (touchesEraseZone || (meanDepth < 0.44 && boxW < 240 && boxH < 110))) {
+            for (let idx = 0; idx < tail; idx++) {
+              inkMask[queue[idx]] = 0;
+            }
+          }
+        }
+      }
+
+      // 步驟 5：輸出純白底色 + 實色深黑印刷文字、橫線與插圖
+      for (let p = 0; p < total; p++) {
+        const i = p * 4;
+        if (!inkMask[p] && !lineMask[p]) {
+          d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+        } else {
+          const dp = inkDepth[p];
+          const solid = Math.max(0, Math.min(255, Math.round((1 - Math.min(1, dp * 1.5)) * 145)));
+          d[i] = solid;
+          d[i + 1] = solid;
+          d[i + 2] = solid;
         }
       }
 
