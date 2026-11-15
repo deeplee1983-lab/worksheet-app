@@ -64,11 +64,11 @@
         </div>
         <div>
           <h1 class="font-bold text-lg text-slate-900 leading-tight">家長學習教室｜工作紙一鍵還原</h1>
-          <p class="text-xs text-slate-500">AI 多模态智能擦除手寫與紅筆批改，純白底色 + 實色深黑印刷與插圖</p>
+          <p class="text-xs text-slate-500">免綁卡無限免費｜智能擦除鉛筆手寫、圈選與紅筆批改，保留原版印刷題目與插圖</p>
         </div>
       </div>
       <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium">
-        AI 圖像修復引擎
+        本地智能引擎（秒速・無限免費）
       </div>
     </div>
   </header>
@@ -95,24 +95,33 @@
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
         <div class="flex items-center gap-2 mb-3">
           <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-          <h2 class="font-bold text-slate-800">AI 還原執行步驟</h2>
+          <h2 class="font-bold text-slate-800">自動還原項目</h2>
         </div>
 
         <div class="space-y-2.5 text-sm">
-          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span class="font-semibold text-slate-800 block">1. 擦除手寫答案與批改筆跡</span>
-            <span class="text-xs text-slate-500">移除鉛筆/黑筆英文、手畫圈選、紅勾、紅叉與分數，保留空白橫線</span>
-          </div>
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-red" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">1. 徹底擦除紅筆打叉（✗）、剔號（√）與藍筆</span>
+              <span class="text-xs text-slate-500">YCbCr 色度分離與膨脹擦除，清除批改筆跡不留痕</span>
+            </div>
+          </label>
 
-          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span class="font-semibold text-slate-800 block">2. 去除拍攝陰影與純白底淨化</span>
-            <span class="text-xs text-slate-500">消除折痕、陰影與灰底，框內純白省墨</span>
-          </div>
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-pencil" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">2. 筆劃核心分析：擦除鉛筆手寫與手畫圓圈</span>
+              <span class="text-xs text-slate-500">識別鉛筆石墨灰階與空心圓圈並抹除，保留印刷題目與橫線</span>
+            </div>
+          </label>
 
-          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-            <span class="font-semibold text-slate-800 block">3. 印刷文字、框線與插圖原位加固</span>
-            <span class="text-xs text-slate-500">題目文字、黑框線與插圖位置不變、深黑銳利</span>
-          </div>
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
+            <input id="opt-white" type="checkbox" checked class="mt-0.5 rounded text-indigo-600" />
+            <div>
+              <span class="font-semibold text-slate-800 block">3. 純白省墨底色 + 印刷黑字與框線加深</span>
+              <span class="text-xs text-slate-500">平滑去除拍攝陰影（無方格馬賽克），文字插圖清晰深黑</span>
+            </div>
+          </label>
         </div>
 
         <button id="restore-btn" disabled class="mt-5 w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-base shadow-sm transition flex items-center justify-center gap-2">
@@ -135,12 +144,6 @@
           <div id="empty-placeholder" class="text-center p-6 text-slate-400">
             <p class="text-sm font-medium">還原後的純白空白工作紙將顯示在這裡</p>
             <p class="text-xs mt-1">支援左右滑桿直接對比「移除前」與「移除後」效果</p>
-          </div>
-
-          <div id="loading-overlay" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
-            <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
-            <p class="font-bold text-slate-800">AI 正在擦除手寫筆跡並補全空白橫線...</p>
-            <p class="text-xs text-slate-500 mt-1">約需 5～8 秒，請勿關閉視窗</p>
           </div>
 
           <img id="single-preview" class="hidden max-h-[560px] w-auto object-contain" alt="工作紙預覽" />
@@ -202,12 +205,11 @@
     const afterImg = document.getElementById('after-img');
     const beforeClip = document.getElementById('before-clip');
     const sliderLine = document.getElementById('slider-line');
-    const loadingOverlay = document.getElementById('loading-overlay');
     const actionBar = document.getElementById('action-bar');
     const statusBadge = document.getElementById('status-badge');
 
+    let loadedImageObj = null;
     let originalA4DataUrl = '';
-    let aiUploadBase64 = '';
     let restoredA4DataUrl = '';
 
     function fitImageToStandardA4Canvas(sourceCanvasOrImg) {
@@ -255,6 +257,32 @@
       fileInput.click();
     });
 
+    function runRestore() {
+      if (!loadedImageObj) return;
+      restoredA4DataUrl = processWorksheetCanvas(loadedImageObj, {
+        removeRed: document.getElementById('opt-red').checked,
+        removePencil: document.getElementById('opt-pencil').checked,
+        pureWhite: document.getElementById('opt-white').checked,
+      });
+
+      beforeImg.src = originalA4DataUrl;
+      afterImg.src = restoredA4DataUrl;
+
+      singlePreview.classList.add('hidden');
+      compareContainer.classList.remove('hidden');
+      requestAnimationFrame(syncExactDimensions);
+      actionBar.classList.remove('hidden');
+      statusBadge.textContent = '✨ 還原完成！左右滑動對比移除前後效果';
+    }
+
+    ['opt-red', 'opt-pencil', 'opt-white'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (!compareContainer.classList.contains('hidden')) {
+          runRestore();
+        }
+      });
+    });
+
     function handleFile(file) {
       if (!file) return;
       fileNameEl.textContent = '正在載入照片...';
@@ -263,17 +291,9 @@
       const objectUrl = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
-        // 1. 生成標準 A4 原圖（用於 1:1 對比左側）
+        loadedImageObj = img;
         const origA4Canvas = fitImageToStandardA4Canvas(img);
         originalA4DataUrl = origA4Canvas.toDataURL('image/jpeg', 0.92);
-
-        // 2. 生成傳送給多模态圖像編輯模型的標準 A4 圖檔（1024px 高度確保秒級回應不超時）
-        const aiCanvas = document.createElement('canvas');
-        aiCanvas.width = 768;
-        aiCanvas.height = 1086;
-        aiCanvas.getContext('2d').drawImage(origA4Canvas, 0, 0, 768, 1086);
-        aiUploadBase64 = aiCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-
         URL.revokeObjectURL(objectUrl);
 
         fileNameEl.textContent = '✅ 已載入：' + (file.name || '工作紙照片');
@@ -292,63 +312,289 @@
       img.src = objectUrl;
     }
 
-    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
-
-    restoreBtn.addEventListener('click', async () => {
-      if (!aiUploadBase64) return;
-      loadingOverlay.classList.remove('hidden');
-      restoreBtn.disabled = true;
-      statusBadge.textContent = 'AI 多模态引擎正在擦除筆跡與淨化白底...';
-
-      try {
-        const res = await fetch('/api/restore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: aiUploadBase64,
-            mimeType: 'image/jpeg',
-          }),
-        });
-
-        const rawText = await res.text();
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          throw new Error('伺服器回應異常，請重試');
-        }
-
-        if (!res.ok || !data.restoredBase64) {
-          throw new Error(data.error || 'AI 圖像還原失敗，請稍後再試');
-        }
-
-        // 將回傳的修復圖片標準化為 1240 x 1754 A4 PNG，確保與原圖 1:1 完全對齊
-        const editedImg = new Image();
-        await new Promise((resolve, reject) => {
-          editedImg.onload = resolve;
-          editedImg.onerror = reject;
-          editedImg.src = `data:${data.mimeType || 'image/png'};base64,${data.restoredBase64}`;
-        });
-
-        const finalA4Canvas = fitImageToStandardA4Canvas(editedImg);
-        restoredA4DataUrl = finalA4Canvas.toDataURL('image/png');
-
-        beforeImg.src = originalA4DataUrl;
-        afterImg.src = restoredA4DataUrl;
-
-        singlePreview.classList.add('hidden');
-        compareContainer.classList.remove('hidden');
-        requestAnimationFrame(syncExactDimensions);
-        actionBar.classList.remove('hidden');
-        statusBadge.textContent = '✨ 還原完成！左右滑動對比移除前後效果';
-      } catch (err) {
-        alert('還原時發生錯誤：' + err.message);
-        statusBadge.textContent = '處理失敗，請重試';
-      } finally {
-        loadingOverlay.classList.add('hidden');
-        restoreBtn.disabled = false;
+    /**
+     * 平滑無馬賽克本地結構擦除引擎：
+     * 1. YCbCr 色度分離 + 5x5 形態學膨脹：精準移除老師紅筆批改 (✗ / √) 與藍筆
+     * 2. 雙線性插值平滑背景估計：消除拍攝陰影與紙張灰底，絕不產生任何方格馬賽克
+     * 3. 8-連通域筆劃核心分析：識別鉛筆字跡（缺乏純黑核心）與手畫大圓圈（寬度大、佔空比低）並整塊抹除
+     */
+    function processWorksheetCanvas(img, opts) {
+      const maxDim = 1600;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
       }
-    });
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      const total = w * h;
+
+      // 步驟 1：YCbCr 色度分離移除紅筆/藍筆批改
+      if (opts.removeRed) {
+        const chromaMask = new Uint8Array(total);
+        for (let p = 0; p < total; p++) {
+          const i = p * 4;
+          const r = d[i], g = d[i + 1], b = d[i + 2];
+          const cb = -0.1687 * r - 0.3313 * g + 0.5 * b;
+          const cr = 0.5 * r - 0.4187 * g - 0.0813 * b;
+          const chromaDist = Math.hypot(cb, cr);
+          if (chromaDist > 11 && (cr > 6 || cb > 8 || (r - g > 12))) {
+            chromaMask[p] = 1;
+          }
+        }
+        const dilatedChroma = new Uint8Array(total);
+        for (let y = 2; y < h - 2; y++) {
+          for (let x = 2; x < w - 2; x++) {
+            const p = y * w + x;
+            if (chromaMask[p]) {
+              for (let dy = -2; dy <= 2; dy++) {
+                const rowOff = (y + dy) * w;
+                for (let dx = -2; dx <= 2; dx++) {
+                  dilatedChroma[rowOff + x + dx] = 1;
+                }
+              }
+            }
+          }
+        }
+        for (let p = 0; p < total; p++) {
+          if (dilatedChroma[p]) {
+            const i = p * 4;
+            d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+          }
+        }
+      }
+
+      // 步驟 2：雙線性插值平滑背景估計（無任何方格馬賽克）
+      const gray = new Float32Array(total);
+      for (let p = 0; p < total; p++) {
+        const i = p * 4;
+        gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      }
+
+      const cols = 16, rows = 22;
+      const cellW = w / cols;
+      const cellH = h / rows;
+      const grid = new Float32Array(cols * rows);
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let maxVal = 155;
+          const y0 = Math.floor(r * cellH);
+          const y1 = Math.min(h, Math.floor((r + 1) * cellH));
+          const x0 = Math.floor(c * cellW);
+          const x1 = Math.min(w, Math.floor((c + 1) * cellW));
+          for (let y = y0; y < y1; y += 3) {
+            for (let x = x0; x < x1; x += 3) {
+              const v = gray[y * w + x];
+              if (v > maxVal) maxVal = v;
+            }
+          }
+          grid[r * cols + c] = maxVal;
+        }
+      }
+
+      const smoothGrid = new Float32Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          let sum = 0, cnt = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const nr = r + dr, nc = c + dc;
+              if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                sum += grid[nr * cols + nc];
+                cnt++;
+              }
+            }
+          }
+          smoothGrid[r * cols + c] = sum / cnt;
+        }
+      }
+
+      const inkDepth = new Float32Array(total);
+      const foregroundMask = new Uint8Array(total);
+
+      for (let y = 0; y < h; y++) {
+        const gy = Math.min(rows - 1.001, Math.max(0, (y / cellH) - 0.5));
+        const r0 = Math.floor(gy);
+        const r1 = Math.min(rows - 1, r0 + 1);
+        const fy = gy - r0;
+
+        for (let x = 0; x < w; x++) {
+          const gx = Math.min(cols - 1.001, Math.max(0, (x / cellW) - 0.5));
+          const c0 = Math.floor(gx);
+          const c1 = Math.min(cols - 1, c0 + 1);
+          const fx = gx - c0;
+
+          const topBg = smoothGrid[r0 * cols + c0] * (1 - fx) + smoothGrid[r0 * cols + c1] * fx;
+          const botBg = smoothGrid[r1 * cols + c0] * (1 - fx) + smoothGrid[r1 * cols + c1] * fx;
+          const paperWhite = topBg * (1 - fy) + botBg * fy;
+
+          const p = y * w + x;
+          const depth = Math.max(0, 1 - gray[p] / Math.max(1, paperWhite));
+          inkDepth[p] = depth;
+
+          if (depth > 0.14) {
+            foregroundMask[p] = 1;
+          }
+        }
+      }
+
+      // 步驟 3：8-連通域幾何與墨水核心分析（抹除手寫鉛筆字與手畫圓圈）
+      if (opts.removePencil) {
+        const visited = new Uint8Array(total);
+        const queue = new Int32Array(total);
+        const eraseMask = new Uint8Array(total);
+
+        const dx8 = [-1, 0, 1, -1, 1, -1, 0, 1];
+        const dy8 = [-1, -1, -1, 0, 0, 1, 1, 1];
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const startP = y * w + x;
+            if (!foregroundMask[startP] || visited[startP]) continue;
+
+            let head = 0, tail = 0;
+            queue[tail++] = startP;
+            visited[startP] = 1;
+
+            let minX = x, maxX = x, minY = y, maxY = y;
+            let pixelCount = 0;
+            let sumDepth = 0;
+            let darkCoreCount = 0;
+
+            while (head < tail) {
+              const curr = queue[head++];
+              const cx = curr % w;
+              const cy = (curr - cx) / w;
+
+              if (cx < minX) minX = cx;
+              if (cx > maxX) maxX = cx;
+              if (cy < minY) minY = cy;
+              if (cy > maxY) maxY = cy;
+
+              const dp = inkDepth[curr];
+              pixelCount++;
+              sumDepth += dp;
+              if (dp > 0.54) darkCoreCount++;
+
+              for (let k = 0; k < 8; k++) {
+                const nx = cx + dx8[k];
+                const ny = cy + dy8[k];
+                if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                  const np = ny * w + nx;
+                  if (foregroundMask[np] && !visited[np]) {
+                    visited[np] = 1;
+                    queue[tail++] = np;
+                  }
+                }
+              }
+            }
+
+            const boxW = maxX - minX + 1;
+            const boxH = maxY - minY + 1;
+            const boxArea = boxW * boxH;
+            const fillRatio = pixelCount / Math.max(1, boxArea);
+            const meanDepth = sumDepth / Math.max(1, pixelCount);
+            const coreRatio = darkCoreCount / Math.max(1, pixelCount);
+
+            // 保護印刷長橫線與大型插圖框
+            const isPrintedLine = (boxW > 95 && boxH <= 9 && fillRatio > 0.32);
+            const isLargeIllustration = (boxW > 130 && boxH > 130 && coreRatio > 0.20);
+
+            let shouldErase = false;
+            if (!isPrintedLine && !isLargeIllustration) {
+              // 手畫圓圈（寬度大、空心度高）
+              const isHandDrawnCircle = (boxW >= 38 && boxH >= 16 && boxW <= 260 && boxH <= 120 && fillRatio < 0.22 && coreRatio < 0.35);
+              // 手寫鉛筆字（缺乏印刷純黑核心或平均墨水偏灰）
+              const isPencilHandwriting = (meanDepth < 0.45 && coreRatio < 0.28 && boxW < 240 && boxH < 120);
+              if (isHandDrawnCircle || isPencilHandwriting) {
+                shouldErase = true;
+              }
+            }
+
+            if (shouldErase) {
+              for (let idx = 0; idx < tail; idx++) {
+                eraseMask[queue[idx]] = 1;
+              }
+            }
+          }
+        }
+
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const p = y * w + x;
+            if (
+              eraseMask[p] ||
+              eraseMask[p - 1] || eraseMask[p + 1] ||
+              eraseMask[p - w] || eraseMask[p + w]
+            ) {
+              foregroundMask[p] = 0;
+            }
+          }
+        }
+      }
+
+      // 步驟 4：純白省墨背景 + 印刷文字與插圖深黑實色加固
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const p = y * w + x;
+          const i = p * 4;
+          if (!foregroundMask[p]) {
+            if (opts.pureWhite) {
+              d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+            }
+          } else {
+            const dp = inkDepth[p];
+            const solid = Math.max(0, Math.min(255, Math.round((1 - Math.min(1, dp * 1.45)) * 160)));
+            d[i] = solid;
+            d[i + 1] = solid;
+            d[i + 2] = solid;
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+
+      const finalA4Canvas = fitImageToStandardA4Canvas(canvas);
+      return finalA4Canvas.toDataURL('image/png');
+    }
+
+    function dataUrlToBlob(dataUrl) {
+      const arr = dataUrl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    function triggerDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+
+    function buildSinglePageA4Pdf() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      pdf.addImage(restoredA4DataUrl, 'PNG', 0, 0, 210, 297);
+      return pdf;
+    }
+
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    restoreBtn.addEventListener('click', runRestore);
 
     let isDragging = false;
     function updateSlider(clientX) {
@@ -366,12 +612,7 @@
     // 1. 儲存標準 A4 PNG（圖片檔使用原生選單存入相簿）
     document.getElementById('download-png-btn').addEventListener('click', async () => {
       if (!restoredA4DataUrl) return;
-      const arr = restoredA4DataUrl.split(',');
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) u8arr[n] = bstr.charCodeAt(n);
-      const blob = new Blob([u8arr], { type: 'image/png' });
+      const blob = dataUrlToBlob(restoredA4DataUrl);
       const file = new File([blob], '空白練習工作紙_A4.png', { type: 'image/png' });
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -382,41 +623,22 @@
           if (err.name === 'AbortError') return;
         }
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '空白練習工作紙_A4.png';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      triggerDownloadBlob(blob, '空白練習工作紙_A4.png');
     });
 
     // 2. 匯出標準 A4 PDF（使用 application/octet-stream 強制觸發單一 PDF 檔案下載）
     document.getElementById('download-pdf-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(restoredA4DataUrl, 'PNG', 0, 0, 210, 297);
-
+      const pdf = buildSinglePageA4Pdf();
       const rawBuffer = pdf.output('arraybuffer');
       const forceDownloadBlob = new Blob([rawBuffer], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(forceDownloadBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '空白練習工作紙_A4.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      triggerDownloadBlob(forceDownloadBlob, '空白練習工作紙_A4.pdf');
     });
 
     // 3. 直接列印 A4（透過標準單頁 A4 PDF 喚起系統列印，100% 鎖定只有「頁面 1/1」）
     document.getElementById('print-btn').addEventListener('click', () => {
       if (!restoredA4DataUrl) return;
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      pdf.addImage(restoredA4DataUrl, 'PNG', 0, 0, 210, 297);
+      const pdf = buildSinglePageA4Pdf();
       const pdfBlob = pdf.output('blob');
       const blobUrl = URL.createObjectURL(pdfBlob);
 
