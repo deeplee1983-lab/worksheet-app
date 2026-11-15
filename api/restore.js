@@ -29,15 +29,38 @@ export default async function handler(req, res) {
 4. 【去拍攝效果與白底淨化】：消除相機拍攝產生的陰影、光影不均、紙張褶皺、污漬與泛黃，將所有非文字/非線框/非插圖的背景區域提亮為均勻的 100% 純白色（#FFFFFF），框內保持純白無灰底。
 5. 【文字與線框增強】：讓保留下來的黑色印刷文字、填空橫線、表格框線與黑白插圖更加清晰、實色、深黑且邊緣銳利。`;
 
-  // 優先使用支援原生圖像編輯輸出的多模态模型
-  const imageEditModels = [
+  // 自動動態偵測當前金鑰可用的最新原生圖像編輯模型，避免模型版本更替報錯
+  let candidateModels = [
     'gemini-2.5-flash-image',
-    'gemini-2.0-flash-exp-image-generation',
+    'gemini-3.1-flash-image-preview',
+    'gemini-3-pro-image-preview',
   ];
 
-  let lastError = '圖像編輯模型暫時繁忙，請稍後再試';
+  try {
+    const listRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
+    );
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const dynamicImageModels = (listData.models || [])
+        .map((m) => (m.name || '').replace('models/', ''))
+        .filter(
+          (name) =>
+            name.includes('image') &&
+            !name.includes('imagen') &&
+            !name.includes('2.0-flash-exp')
+        );
+      if (dynamicImageModels.length > 0) {
+        candidateModels = Array.from(new Set([...dynamicImageModels, ...candidateModels]));
+      }
+    }
+  } catch (e) {
+    // 忽略列表查詢錯誤，直接沿用預設最新模型清單
+  }
 
-  for (const model of imageEditModels) {
+  let lastError = '圖像編輯模型暫時無法連線，請稍後再試';
+
+  for (const model of candidateModels) {
     try {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
@@ -59,7 +82,7 @@ export default async function handler(req, res) {
               },
             ],
             generationConfig: {
-              responseModalities: ['IMAGE', 'TEXT'],
+              responseModalities: ['IMAGE'],
             },
           }),
         }
