@@ -312,12 +312,6 @@
       img.src = objectUrl;
     }
 
-    /**
-     * 平滑無馬賽克本地結構擦除引擎：
-     * 1. YCbCr 色度分離 + 5x5 形態學膨脹：精準移除老師紅筆批改 (✗ / √) 與藍筆
-     * 2. 雙線性插值平滑背景估計：消除拍攝陰影與紙張灰底，絕不產生任何方格馬賽克
-     * 3. 8-連通域筆劃核心分析：識別鉛筆字跡（缺乏純黑核心）與手畫大圓圈（寬度大、佔空比低）並整塊抹除
-     */
     function processWorksheetCanvas(img, opts) {
       const maxDim = 1600;
       let w = img.width, h = img.height;
@@ -503,15 +497,12 @@
             const meanDepth = sumDepth / Math.max(1, pixelCount);
             const coreRatio = darkCoreCount / Math.max(1, pixelCount);
 
-            // 保護印刷長橫線與大型插圖框
             const isPrintedLine = (boxW > 95 && boxH <= 9 && fillRatio > 0.32);
             const isLargeIllustration = (boxW > 130 && boxH > 130 && coreRatio > 0.20);
 
             let shouldErase = false;
             if (!isPrintedLine && !isLargeIllustration) {
-              // 手畫圓圈（寬度大、空心度高）
               const isHandDrawnCircle = (boxW >= 38 && boxH >= 16 && boxW <= 260 && boxH <= 120 && fillRatio < 0.22 && coreRatio < 0.35);
-              // 手寫鉛筆字（缺乏印刷純黑核心或平均墨水偏灰）
               const isPencilHandwriting = (meanDepth < 0.45 && coreRatio < 0.28 && boxW < 240 && boxH < 120);
               if (isHandDrawnCircle || isPencilHandwriting) {
                 shouldErase = true;
